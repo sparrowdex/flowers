@@ -1,0 +1,17 @@
+.fun-fact {
+  position: absolute;
+  opacity: 0;
+  transition: opacity 1s ease-in-out;
+  color: #ffffff;
+  text-shadow: 0 0 10px #ffffff, 0 0 20px #ffffff, 0 0 30px #ffffff, 0 0 40px #00ff00, 0 0 70px #00ff00, 0 0 80px #00ff00, 0 0 100px #00ff00, 0 0 150px #00ff00;
+  font-size: 1.2rem;
+  padding: 10px;
+  border-radius: 5px;
+  background-color: transparent;
+  max-width: 200px;
+  text-align: center;
+}
+
+.fun-fact.visible {
+  opacity: 1;
+}

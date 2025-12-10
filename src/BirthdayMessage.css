@@ -1,0 +1,40 @@
+.birthday-message-container {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1000;
+  animation: fadeOut 4s forwards;
+}
+
+.birthday-message {
+  font-size: 5rem;
+  color: #fff;
+  font-weight: 300;
+  text-align: center;
+}
+
+.shimmer {
+  color: #fff;
+  mask: linear-gradient(-60deg, #000 30%, #0005, #000 70%);
+  mask-size: 200%;
+  animation: shimmer 3s infinite;
+}
+
+@keyframes shimmer {
+  100% {
+    mask-position: -200%;
+  }
+}
+
+@keyframes fadeOut {
+  0% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
