@@ -501,10 +501,17 @@ export default function App() {
   const [name, setName] = useState('');
   const [fadeIn, setFadeIn] = useState(false);
   const [showBirthdayMessage, setShowBirthdayMessage] = useState(true);
+  const audioRef = useRef(null);
 
 
   const handleSubmit = () => {
     if (name.trim().toLowerCase() === 'prakriti') {
+      if (audioRef.current) {
+        audioRef.current.play().catch(error => {
+          // Log errors if playback is prevented
+          console.error("Audio playback error:", error);
+        });
+      }
       setStage('message');
       setTimeout(() => setFadeIn(true), 100);
     }
@@ -525,7 +532,7 @@ export default function App() {
 
   return (
     <div className="animated-gradient w-full h-screen bg-gradient-to-br from-slate-900 via-green-900 to-slate-900">
-      <audio src="/audio/soft_melody.m4a" autoPlay loop hidden />
+      <audio ref={audioRef} src="/audio/soft_melody.m4a" loop hidden />
       {stage === 'input' && (
         <div className="flex items-center justify-center h-full">
           <div className="text-center space-y-8 p-8">
