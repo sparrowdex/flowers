@@ -1,9 +1,7 @@
 import React, { useState, useRef, useMemo } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
+import { useFrame } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
-import plantData from './plantData';
-
 
 // L-System implementation
 class LSystem {
@@ -12,7 +10,6 @@ class LSystem {
     this.rules = rules;
     this.iterations = iterations;
   }
-
 
   generate() {
     let current = this.axiom;
@@ -27,7 +24,6 @@ class LSystem {
   }
 }
 
-
 // Interpret L-system string into 3D positions and orientations
 function interpretLSystem(lString, angleVariation = 25, segmentLength = 0.15) {
   const branches = [];
@@ -35,9 +31,9 @@ function interpretLSystem(lString, angleVariation = 25, segmentLength = 0.15) {
   let position = new THREE.Vector3(0, 0, 0);
   let direction = new THREE.Vector3(0, 1, 0);
   let rotation = new THREE.Euler(0, 0, 0);
- 
+
   const angle = angleVariation * Math.PI / 180;
- 
+
   for (let char of lString) {
     switch(char) {
       case 'F': // Move forward and draw
@@ -51,49 +47,49 @@ function interpretLSystem(lString, angleVariation = 25, segmentLength = 0.15) {
         });
         position = newPos;
         break;
-       
+
       case '+': // Turn right
         const rightQuat = new THREE.Quaternion().setFromAxisAngle(
           new THREE.Vector3(0, 0, 1), angle
         );
         direction.applyQuaternion(rightQuat);
         break;
-       
+
       case '-': // Turn left
         const leftQuat = new THREE.Quaternion().setFromAxisAngle(
           new THREE.Vector3(0, 0, 1), -angle
         );
         direction.applyQuaternion(leftQuat);
         break;
-       
+
       case '&': // Pitch down
         const pitchQuat = new THREE.Quaternion().setFromAxisAngle(
           new THREE.Vector3(1, 0, 0), angle
         );
         direction.applyQuaternion(pitchQuat);
         break;
-       
+
       case '^': // Pitch up
         const pitchUpQuat = new THREE.Quaternion().setFromAxisAngle(
           new THREE.Vector3(1, 0, 0), -angle
         );
         direction.applyQuaternion(pitchUpQuat);
         break;
-       
+
       case '\\': // Roll right
         const rollQuat = new THREE.Quaternion().setFromAxisAngle(
           new THREE.Vector3(0, 1, 0), angle
         );
         direction.applyQuaternion(rollQuat);
         break;
-       
+
       case '/': // Roll left
         const rollLeftQuat = new THREE.Quaternion().setFromAxisAngle(
           new THREE.Vector3(0, 1, 0), -angle
         );
         direction.applyQuaternion(rollLeftQuat);
         break;
-       
+
       case '[': // Save state
         stack.push({
           position: position.clone(),
@@ -101,7 +97,7 @@ function interpretLSystem(lString, angleVariation = 25, segmentLength = 0.15) {
           rotation: rotation.clone()
         });
         break;
-       
+
       case ']': // Restore state
         const state = stack.pop();
         if (state) {
@@ -112,15 +108,13 @@ function interpretLSystem(lString, angleVariation = 25, segmentLength = 0.15) {
         break;
     }
   }
- 
+
   return branches;
 }
-
 
 // Individual leaf
 function Leaf({ position, rotation, scale }) {
   const leafRef = useRef();
-
 
   useFrame((state) => {
     const t = state.clock.getElapsedTime();
@@ -130,14 +124,12 @@ function Leaf({ position, rotation, scale }) {
     }
   });
 
-
   const leafShape = new THREE.Shape();
   // A simple, elegant leaf shape
   leafShape.moveTo(0, 0);
   leafShape.quadraticCurveTo(0.4, 0.5, 0.5, 1.2); // Right side curve
   leafShape.quadraticCurveTo(0.2, 0.8, -0.5, 1.2); // Tip and left side curve
   leafShape.quadraticCurveTo(-0.4, 0.5, 0, 0);  // Curve back to base
-
 
   const extrudeSettings = {
       steps: 1,
@@ -148,9 +140,7 @@ function Leaf({ position, rotation, scale }) {
       bevelSegments: 1
   };
 
-
   const leafGeometry = new THREE.ExtrudeGeometry(leafShape, extrudeSettings);
-
 
   return (
     <group ref={leafRef} position={position} rotation={rotation} scale={scale}>
@@ -165,7 +155,6 @@ function Leaf({ position, rotation, scale }) {
     </group>
   );
 }
-
 
 // Bent Leaf with a stem, designed to look more natural
 function BentLeaf({ position, rotation, scale }) {
@@ -208,7 +197,7 @@ function BentLeaf({ position, rotation, scale }) {
         positions.setZ(i, positions.getZ(i) + bendFactor);
       }
     }
-    
+
     geom.computeVertexNormals(); // Recalculate normals for accurate lighting
     return geom;
   }, [leafHeight]);
@@ -220,7 +209,7 @@ function BentLeaf({ position, rotation, scale }) {
         <cylinderGeometry args={[stemThickness, stemThickness, stemHeight, 6]} />
         <meshStandardMaterial color="#4a7a3a" roughness={0.6} />
       </mesh>
-      
+
       {/* Leaf Blade: Positioned at the origin of the group, appearing to grow from the stem */}
       <mesh geometry={bentLeafGeometry} rotation={[Math.PI / 2, 0, 0]}>
         <meshStandardMaterial
@@ -233,7 +222,6 @@ function BentLeaf({ position, rotation, scale }) {
     </group>
   );
 }
-
 
 // Peace Lily Flower
 function PeaceLilyFlower({ position, glowIntensity }) {
@@ -267,14 +255,14 @@ function PeaceLilyFlower({ position, glowIntensity }) {
 
       // Add a gentle C-curve along the petal's length (in the z-direction)
       const curve = -Math.sin(normalizedY * Math.PI) * 0.07;
-      
+
       // Add a slight backward bend, strongest at the tip
       const tipBend = Math.pow(normalizedY, 5) * -0.12;
 
       // Apply the deformations to the vertex's Z position
       positions.setZ(i, positions.getZ(i) + curve + tipBend);
     }
-    
+
     geom.computeVertexNormals(); // Recalculate normals for correct lighting
     return geom;
   }, []);
@@ -302,7 +290,7 @@ function PeaceLilyFlower({ position, glowIntensity }) {
             emissiveIntensity={glowIntensity}
           />
         </mesh>
-       
+
         {/* Texture bumps */}
         {Array.from({ length: 25 }).map((_, i) => {
           const y = (i / 25) * 0.45 - 0.225;
@@ -327,7 +315,6 @@ function PeaceLilyFlower({ position, glowIntensity }) {
   );
 }
 
-
 // Generates a circle of leaves facing outwards
 function Leaves() {
   const leafCount = 4; // Simplified to 4 leaves as requested
@@ -336,13 +323,13 @@ function Leaves() {
       // Position them symmetrically
       const angle = (i / leafCount) * Math.PI * 2;
       const radius = 0.25; // A slightly larger, fixed radius for spacing
-     
+
       const x = Math.cos(angle) * radius;
       const z = Math.sin(angle) * radius;
-     
+
       // Orient them to face outwards
       const rotationY = angle + Math.PI / 2;
-     
+
       return {
         position: [x, 0.1, z],
         rotation: [
@@ -355,7 +342,6 @@ function Leaves() {
     });
   }, []);
 
-
   return (
     <group>
       {leaves.map((props, i) => (
@@ -365,11 +351,9 @@ function Leaves() {
   );
 }
 
-
 // Generates the central flower stalks
 function FlowerStalks() {
   const [glowIntensity, setGlowIntensity] = useState(0);
-
 
   // Generate 2 shorter stalks
   const stalks = useMemo(() => {
@@ -378,12 +362,10 @@ function FlowerStalks() {
     // Shorter segment length
     const stalk1Branches = interpretLSystem(stalk1String, 5, 0.2);
 
-
     const stalkSys2 = new LSystem('F', { 'F': 'FF' }, 2); // Reduced iterations to 2
     const stalk2String = stalkSys2.generate();
     // Shorter segment length
     const stalk2Branches = interpretLSystem(stalk2String, -4, 0.22);
-
 
     return [
         { branches: stalk1Branches, position: [0.05, 0, -0.05] },
@@ -391,12 +373,10 @@ function FlowerStalks() {
     ];
   }, []);
 
-
   useFrame((state) => {
     const t = state.clock.getElapsedTime();
     setGlowIntensity(0.4 + Math.sin(t * 1.2) * 0.2);
   });
-
 
   return (
     <group>
@@ -413,7 +393,7 @@ function FlowerStalks() {
                 orientation.setFromAxisAngle(axis, angle);
             }
             const thickness = 0.02;
-           
+
             return (
               <mesh key={i} position={branch.start.clone().lerp(branch.end, 0.5)} quaternion={orientation}>
                 <cylinderGeometry args={[thickness, thickness, length, 6]} />
@@ -432,182 +412,21 @@ function FlowerStalks() {
   );
 }
 
-
-
-import FunFacts from './FunFacts';
-import BirthdayMessage from './BirthdayMessage';
-
-function Particles() {
-  const ref = useRef();
-  const count = 25;
-  const positions = new Float32Array(count * 3);
- 
-  for (let i = 0; i < count; i++) {
-    positions[i * 3] = (Math.random() - 0.5) * 3;
-    positions[i * 3 + 1] = Math.random() * 3;
-    positions[i * 3 + 2] = (Math.random() - 0.5) * 3;
-  }
-
-
-  useFrame((state) => {
-    if (ref.current) {
-      ref.current.rotation.y = state.clock.getElapsedTime() * 0.02;
-    }
-  });
-
-
+// Main plant with pot
+function PeaceLily() {
   return (
-    <points ref={ref}>
-      <bufferGeometry>
-        <bufferAttribute
-          attach="attributes-position"
-          count={count}
-          array={positions}
-          itemSize={3}
-        />
-      </bufferGeometry>
-      <pointsMaterial
-        size={0.03}
-        color="#e8ddb5"
-        transparent
-        opacity={0.4}
-        sizeAttenuation
-      />
-    </points>
+    <group position={[0, -0.5, 0]} scale={0.8}>
+      {/* Pot */}
+      <mesh position={[0, 0, 0]}>
+        <cylinderGeometry args={[0.45, 0.5, 0.2, 20]} />
+        <meshStandardMaterial color="#3d2d1f" roughness={0.9} />
+      </mesh>
+
+      {/* Assemble the plant from its new parts */}
+      <Leaves />
+      <FlowerStalks />
+    </group>
   );
 }
 
-// Main App
-export default function App() {
-  const [stage, setStage] = useState('input');
-  const [name, setName] = useState('');
-  const [fadeIn, setFadeIn] = useState(false);
-  const [showBirthdayMessage, setShowBirthdayMessage] = useState(true);
-  const [currentPlant, setCurrentPlant] = useState(null);
-  const audioRef = useRef(null);
-
-
-  const handleSubmit = () => {
-    const plant = plantData[name.trim().toLowerCase()];
-    if (plant) {
-      setCurrentPlant(plant);
-      if (plant.hasAudio && audioRef.current) {
-        audioRef.current.play().catch(error => {
-          // Log errors if playback is prevented
-          console.error("Audio playback error:", error);
-        });
-      }
-      setStage('message');
-      setTimeout(() => setFadeIn(true), 100);
-    }
-  };
-
-
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter') {
-      handleSubmit();
-    }
-  };
-
-
-  const showAnimation = () => {
-    setStage('animation');
-  };
-
-
-  const PlantComponent = currentPlant ? currentPlant.component : null;
-
-
-  return (
-    <div className="animated-gradient w-full h-screen bg-gradient-to-br from-slate-900 via-green-900 to-slate-900">
-      <audio ref={audioRef} src="/audio/soft_melody.m4a" loop hidden />
-      {stage === 'input' && (
-        <div className="flex items-center justify-center h-full">
-          <div className="text-center space-y-8 p-8">
-            <h1 className="text-5xl font-light text-white mb-4">
-              Discover Your Plant Identity
-            </h1>
-            <p className="text-xl text-green-200 mb-8">
-              A special birthday gift awaits...
-            </p>
-            <div className="space-y-4 flex flex-col items-center">
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder="Enter your name"
-                className="px-6 py-4 text-2xl bg-white/10 border-2 border-green-300/50 rounded-lg text-white placeholder-green-200/50 focus:outline-none focus:border-green-300 w-80"
-              />
-              <button
-                onClick={handleSubmit}
-                className="w-80 px-6 py-4 text-xl bg-green-600 hover:bg-green-500 text-white rounded-lg transition-all duration-300 shadow-lg hover:shadow-green-500/50"
-              >
-                Reveal
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-
-      {stage === 'message' && currentPlant && (
-        <div className={`flex items-center justify-center h-full transition-opacity duration-1000 ${fadeIn ? 'opacity-100' : 'opacity-0'}`}>
-          <div className="max-w-2xl p-12 bg-white/5 backdrop-blur-md rounded-2xl border border-green-300/30 shadow-2xl">
-            <h2 className="text-4xl font-light text-white mb-6 text-center">
-              Happy Birthday, {name}! 🌸
-            </h2>
-            <div className="space-y-4 text-green-100 text-lg leading-relaxed mb-8">
-              {currentPlant.description.map((text, index) => (
-                <p key={index} dangerouslySetInnerHTML={{ __html: text }} />
-              ))}
-            </div>
-            <button
-              onClick={showAnimation}
-              className="w-full px-8 py-4 text-xl bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white rounded-lg transition-all duration-300 shadow-lg hover:shadow-green-500/50"
-            >
-              See Your {currentPlant.plantName} Bloom ✨
-            </button>
-          </div>
-        </div>
-      )}
-
-
-      {stage === 'animation' && currentPlant && (
-        <div className="relative w-full h-full">
-          {showBirthdayMessage && <BirthdayMessage />}
-          {currentPlant.plantName === 'Peace Lily' ? (
-            <Canvas camera={{ position: [2, 1.5, 2.5], fov: 50 }}>
-              <ambientLight intensity={0.6} />
-              <directionalLight position={[5, 5, 5]} intensity={1.2} />
-              <pointLight position={[-3, 2, -3]} intensity={0.5} color="#a8d5a8" />
-              <spotLight
-                position={[0, 4, 0]}
-                angle={0.5}
-                penumbra={1}
-                intensity={1}
-                color="#fff8e7"
-              />
-              <PlantComponent />
-              <Particles />
-              <OrbitControls
-                enableZoom={true}
-                enablePan={false}
-                minDistance={1.5}
-                maxDistance={5}
-                maxPolarAngle={Math.PI / 2.1}
-              />
-            </Canvas>
-          ) : (
-            <PlantComponent />
-          )}
-          <FunFacts facts={currentPlant.funFacts} />
-          <div className="absolute top-8 left-1/2 transform -translate-x-1/2 text-center">
-            <h3 className="text-3xl font-light text-white mb-2">Your {currentPlant.plantName}</h3>
-            <p className="text-green-200">Drag to rotate • Scroll to zoom</p>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
+export default PeaceLily;
