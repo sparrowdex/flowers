@@ -19,15 +19,24 @@ const animatedBackgroundStyle = `
 
 function Petal({ size, hueVariation }) {
   const { geometry, material } = useMemo(() => {
+    // --- Petal Shape & Geometry ---
     const shape = new THREE.Shape();
+    const halfWidth = size * 0.45;
+
     shape.moveTo(0, 0);
-    shape.bezierCurveTo(size * 0.1, size * 0.3, size * 0.3, size * 0.7, size * 0.4, size * 1.0);
-    shape.bezierCurveTo(size * 0.5, size * 1.05, size * 0.6, size * 1.0, size * 0.7, size * 0.9);
-    shape.bezierCurveTo(size * 0.8, size * 0.7, size * 0.9, size * 0.4, size * 0.85, size * 0.1);
-    shape.quadraticCurveTo(size * 0.6, -0.05, 0, 0);
+    shape.bezierCurveTo(
+        -size * 0.05, size * 0.2,
+        -halfWidth * 0.8, size * 0.6,
+        -size * 0.05, size * 1.0
+    );
+    shape.bezierCurveTo(
+        halfWidth * 0.8, size * 0.6,
+        size * 0.05, size * 0.2,
+        0, 0
+    );
 
     const extrudeSettings = {
-      depth: 0.02,
+      depth: 0.02 * size,
       bevelEnabled: true,
       bevelThickness: 0.015,
       bevelSize: 0.015,
@@ -37,14 +46,18 @@ function Petal({ size, hueVariation }) {
 
     const geom = new THREE.ExtrudeGeometry(shape, extrudeSettings);
 
+    // --- Petal Texture & Color Blending ---
     const canvas = document.createElement('canvas');
     canvas.width = 256;
     canvas.height = 256;
     const ctx = canvas.getContext('2d');
     const gradient = ctx.createLinearGradient(0, 0, 0, 256);
+    
     gradient.addColorStop(0, `hsl(${20 + hueVariation}, 85%, 75%)`);
-    gradient.addColorStop(0.5, `hsl(${16 + hueVariation}, 90%, 65%)`);
-    gradient.addColorStop(1, `hsl(${12 + hueVariation}, 95%, 55%)`);
+    gradient.addColorStop(0.6, `hsl(${16 + hueVariation}, 90%, 65%)`);
+    gradient.addColorStop(0.8, `hsl(${12 + hueVariation}, 95%, 55%)`);
+    gradient.addColorStop(1, `hsl(${10 + hueVariation + 5}, 70%, 40%)`); 
+    
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, 256, 256);
     const texture = new THREE.CanvasTexture(canvas);
@@ -65,36 +78,65 @@ function Petal({ size, hueVariation }) {
 function Floret({ scale, openness, hueVariation }) {
   const petalCount = 5 + Math.floor(Math.random() * 2);
 
+  // **START ANGULAR SPREAD LOGIC (288 degrees scoop)**
+  const angularSpread = Math.PI * 1.6; 
+  const angularStartOffset = -Math.PI * 0.8; 
+  // **END ANGULAR SPREAD LOGIC**
+
   return (
     <group>
-      <mesh position-y={-0.05 * scale}>
-        <cylinderGeometry args={[0.12 * scale, 0.06 * scale, 0.2 * scale, 8]} />
-        <meshStandardMaterial color={`hsl(${12 + hueVariation}, 75%, 45%)`} roughness={0.7} metalness={0.05} />
+      {/* --- Central Base/Ovary (Small and dark green) --- */}
+      <mesh position-y={0.0 * scale}> 
+        <cylinderGeometry args={[0.05 * scale, 0.04 * scale, 0.08 * scale, 8]} /> 
+        <meshStandardMaterial color={0x4a5a3a} roughness={0.7} metalness={0.05} /> 
       </mesh>
+
+      {/* --- Petals --- */}
       {Array.from({ length: petalCount }).map((_, i) => {
-        const angle = (i / petalCount) * Math.PI * 2;
-        const radius = 0.1 * scale;
+        // **USE LIMITED ANGULAR SPREAD**
+        const angle = (i / petalCount) * angularSpread + angularStartOffset;
+        
+        // **REVISED BASE TILT (Slightly cupped)**
+        const baseTilt = Math.PI * (0.05 + (1 - openness) * 0.35); 
+        
         return (
           <group
             key={i}
-            position={[Math.cos(angle) * radius, 0.08 * scale, Math.sin(angle) * radius]}
-            rotation={[Math.PI * (0.25 - openness * 0.12) + (Math.random() - 0.5) * 0.08, angle, (Math.random() - 0.5) * 0.04]}
+            // Petal position lifted Y (0.06)
+            position={[Math.cos(angle) * 0.04 * scale, 0.06 * scale, Math.sin(angle) * 0.04 * scale]} 
+            
+            rotation={[
+              baseTilt + (Math.random() - 0.5) * 0.08, 
+              // Set yaw rotation
+              angle + Math.PI / 2, 
+              (Math.random() - 0.5) * 0.04
+            ]}
           >
-            <Petal size={0.5 * scale} hueVariation={hueVariation} />
+            {/* Rotate petal mesh by -90 degrees around X to make it stand up from the XY plane */}
+            <group rotation={[-Math.PI / 2 + Math.sin(angle * 3) * 0.1, 0, 0]}>
+              <Petal size={0.5 * scale} hueVariation={hueVariation} />
+            </group>
           </group>
         );
       })}
-      {openness > 0.5 && Array.from({ length: 3 }).map((_, i) => {
-        const stamenAngle = (i / 3) * Math.PI * 2;
+
+      {/* --- Stamens --- */}
+      {openness > 0.4 && Array.from({ length: 3 }).map((_, i) => {
+        // **NEW STAMEN POSITIONING (Anchored and spread)**
+        const stamenX = (i / 3 - 0.5) * 0.03 * scale; // Spread slightly left and right (X-axis)
+        const stamenZ = 0.05 * scale; // Push forward (Z-axis)
+
         return (
           <group key={i}>
             <mesh
-              position={[Math.cos(stamenAngle) * 0.03 * scale, 0.1 * scale, Math.sin(stamenAngle) * 0.03 * scale]}
-              rotation={[Math.PI / 2 + (Math.random() - 0.5) * 0.2, 0, 0]}
+              // Fixed position relative to the floret, anchored forward
+              position={[stamenX, 0.12 * scale, stamenZ]}
+              rotation={[Math.PI / 2 + (Math.random() - 0.5) * 0.2 + Math.PI * 0.15, 0, 0]} 
             >
               <cylinderGeometry args={[0.008, 0.008, 0.2 * scale, 6]} />
               <meshStandardMaterial color={0xf4e4c1} roughness={0.5} />
-              <mesh position-y={0.1 * scale}>
+              {/* Raised anther sphere slightly */}
+              <mesh position-y={0.12 * scale}>
                 <sphereGeometry args={[0.02 * scale, 8, 8]} />
                 <meshStandardMaterial color={0xd4a356} roughness={0.4} />
               </mesh>
@@ -216,7 +258,10 @@ function Gladiolus() {
     { y: 4.3, row: 1, scale: 0.68, openness: 0.35 },
     { y: 4.5, row: 0, scale: 0.6, openness: 0.2 },
     { y: 4.65, row: 1, scale: 0.5, openness: 0.1 },
-    { y: 4.8, row: 0, scale: 0.4, openness: 0.05 }
+    { y: 4.8, row: 0, scale: 0.4, openness: 0.05 },
+    // **BUDS TO CLOSE THE TOP OF THE SPIKE**
+    { y: 4.95, row: 1, scale: 0.3, openness: 0.01 }, 
+    { y: 5.05, row: 0, scale: 0.2, openness: 0.01 }  
   ], []);
 
   return (
@@ -225,15 +270,23 @@ function Gladiolus() {
       {leaves.map((leaf, i) => <Leaf key={i} {...leaf} />)}
       {floretPositions.map((pos, index) => {
         const hueVariation = (Math.random() - 0.5) * 6;
-        const spiralAngle = pos.row * Math.PI * 0.8 + index * 0.25;
         const stemRadius = 0.05;
-        const baseTilt = -0.3 - (1 - pos.openness) * 0.4;
+        
+        // **SECUND PLACEMENT LOGIC**
+        const lateralOffset = (pos.row === 0 ? 1 : -1) * stemRadius * 1.5; 
+        const forwardOffset = stemRadius * 0.8; 
 
         return (
           <group
             key={index}
-            position={[Math.cos(spiralAngle) * stemRadius, pos.y, Math.sin(spiralAngle) * stemRadius]}
-            rotation={[baseTilt + (Math.random() - 0.5) * 0.2, spiralAngle + Math.PI / 2 + (Math.random() - 0.5) * 0.3, (Math.random() - 0.5) * 0.15]}
+            // Position restricted to the front, alternating left/right
+            position={[lateralOffset, pos.y, forwardOffset]}
+            rotation={[
+                (Math.random() - 0.5) * 0.2, 
+                // Rotate left or right slightly to emerge gracefully from the side
+                (pos.row === 0 ? -Math.PI * 0.1 : Math.PI * 0.1) + (Math.random() - 0.5) * 0.3, 
+                (Math.random() - 0.5) * 0.15
+            ]}
           >
             <Floret scale={pos.scale} openness={pos.openness} hueVariation={hueVariation} />
           </group>
