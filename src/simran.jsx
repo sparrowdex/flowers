@@ -262,7 +262,35 @@ function PinkCarnation() {
       <group position={[0, 2.0, 0]}>
         <CarnationHead scale={1.3} hueVariation={0} />
       </group>
+      <Particles />
     </group>
+  );
+}
+
+function Particles() {
+  const ref = useRef();
+  const count = 60;
+  const positions = useMemo(() => {
+    const pos = new Float32Array(count * 3);
+    for (let i = 0; i < count * 3; i++) {
+      pos[i] = (Math.random() - 0.5) * 10;
+    }
+    return pos;
+  }, []);
+
+  useFrame((state) => {
+    if (ref.current) {
+      ref.current.rotation.y = state.clock.getElapsedTime() * 0.03;
+    }
+  });
+
+  return (
+    <points ref={ref}>
+      <bufferGeometry>
+        <bufferAttribute attach="attributes-position" count={count} array={positions} itemSize={3} />
+      </bufferGeometry>
+      <pointsMaterial size={0.07} color="#ff69b4" transparent opacity={0.4} sizeAttenuation />
+    </points>
   );
 }
 
@@ -290,7 +318,7 @@ export default function PinkCarnationScene() {
           <group position={[0, -1.0, 0]}>
             <PinkCarnation />
           </group>
-          
+
           <OrbitControls target={[0, 1.5, 0]} />
         </Canvas>
       </div>

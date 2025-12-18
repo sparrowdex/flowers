@@ -1,9 +1,9 @@
 import React, { useRef, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls } from '@react-three/drei';
+import { OrbitControls, Float } from '@react-three/drei';
 import * as THREE from 'three';
 
-// Custom animated background
+// --- BACKGROUND ---
 const animatedBackgroundStyle = `
   @keyframes green-gradient {
     0% { background-position: 0% 50%; }
@@ -17,130 +17,283 @@ const animatedBackgroundStyle = `
   }
 `;
 
-function Petal({ size, hueVariation }) {
+// --- PETAL GEOMETRY (With Tip Bend) ---
+function Petal({ width = 1, length = 1, colorVariation = 0, bend = 0.5 }) {
   const { geometry, material } = useMemo(() => {
-    // --- Petal Shape & Geometry ---
     const shape = new THREE.Shape();
-    const halfWidth = size * 0.45;
-
-    shape.moveTo(0, 0);
-    shape.bezierCurveTo(
-        -size * 0.05, size * 0.2,
-        -halfWidth * 0.8, size * 0.6,
-        -size * 0.05, size * 1.0
-    );
-    shape.bezierCurveTo(
-        halfWidth * 0.8, size * 0.6,
-        size * 0.05, size * 0.2,
-        0, 0
-    );
+    
+    shape.moveTo(0, 0); 
+    shape.bezierCurveTo(width * 0.4, length * 0.2, width * 1.1, length * 0.6, 0, length); 
+    shape.bezierCurveTo(-width * 1.1, length * 0.6, -width * 0.4, length * 0.2, 0, 0); 
 
     const extrudeSettings = {
-      depth: 0.02 * size,
+      depth: 0.005, 
       bevelEnabled: true,
-      bevelThickness: 0.015,
-      bevelSize: 0.015,
-      bevelSegments: 2,
-      curveSegments: 12
+      bevelThickness: 0.002,
+      bevelSize: 0.01,
+      bevelSegments: 3,
+      curveSegments: 16
     };
 
-    const geom = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+    const geo = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+    geo.translate(0, 0, 0);
 
-    // --- Petal Texture & Color Blending ---
+    // --- VERTEX MANIPULATION FOR BENDING ---
+    const pos = geo.attributes.position;
+    const v3 = new THREE.Vector3();
+    for (let i = 0; i < pos.count; i++) {
+        v3.fromBufferAttribute(pos, i);
+        const ratio = Math.max(0, v3.y / length);
+        const curl = Math.pow(ratio, 2.5) * bend; 
+        pos.setZ(i, v3.z - curl);
+        pos.setY(i, v3.y - (curl * 0.3)); 
+    }
+    geo.computeVertexNormals();
+
     const canvas = document.createElement('canvas');
     canvas.width = 256;
     canvas.height = 256;
     const ctx = canvas.getContext('2d');
-    const gradient = ctx.createLinearGradient(0, 0, 0, 256);
     
-    gradient.addColorStop(0, `hsl(${20 + hueVariation}, 85%, 75%)`);
-    gradient.addColorStop(0.6, `hsl(${16 + hueVariation}, 90%, 65%)`);
-    gradient.addColorStop(0.8, `hsl(${12 + hueVariation}, 95%, 55%)`);
-    gradient.addColorStop(1, `hsl(${10 + hueVariation + 5}, 70%, 40%)`); 
+    const gradient = ctx.createLinearGradient(0, 0, 0, 256);
+    // Darker Orange Gradient
+    gradient.addColorStop(0.0, `hsl(${5 + colorVariation}, 100%, 35%)`);  
+    gradient.addColorStop(0.5, `hsl(${20 + colorVariation}, 100%, 50%)`); 
+    gradient.addColorStop(1.0, `hsl(${35 + colorVariation}, 100%, 75%)`); 
     
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, 256, 256);
+    
+    ctx.strokeStyle = 'rgba(120, 20, 0, 0.3)';
+    ctx.lineWidth = 1;
+    for(let i=0; i<10; i++) {
+        ctx.beginPath();
+        ctx.moveTo(128, 0);
+        ctx.quadraticCurveTo(128 + (i-5)*40, 128, 128 + (i-5)*15, 256);
+        ctx.stroke();
+    }
+
     const texture = new THREE.CanvasTexture(canvas);
 
     const mat = new THREE.MeshStandardMaterial({
       map: texture,
-      roughness: 0.6,
-      metalness: 0.05,
-      side: THREE.DoubleSide
+      color: '#ffefe0', 
+      roughness: 0.6, 
+      side: THREE.DoubleSide,
     });
 
-    return { geometry: geom, material: mat };
-  }, [size, hueVariation]);
+    return { geometry: geo, material: mat };
+  }, [width, length, colorVariation, bend]);
 
   return <mesh geometry={geometry} material={material} />;
 }
 
-function Floret({ scale, openness, hueVariation }) {
-  const petalCount = 5 + Math.floor(Math.random() * 2);
+// --- STAMEN CLUSTER (Z-Axis Aligned) ---
+function StamenCluster({ isOpen }) {
+    if (isOpen < 0.2) return null;
 
-  // **START ANGULAR SPREAD LOGIC (288 degrees scoop)**
-  const angularSpread = Math.PI * 1.6; 
-  const angularStartOffset = -Math.PI * 0.8; 
-  // **END ANGULAR SPREAD LOGIC**
+    return (
+        <group>
+             {[-1, 0, 1].map(k => (
+                 <group key={k} rotation={[0, 0, k * 0.25]}>
+                     <group rotation={[Math.PI / 2 + 0.2, 0, 0]}>
+                        <mesh position={[0, 0.25, 0]}>
+                            <cylinderGeometry args={[0.004, 0.004, 0.5, 5]} />
+                            <meshStandardMaterial color="#fffdd0" />
+                        </mesh>
+                        <mesh position={[0, 0.5, 0]} rotation={[0, 0, 0]}>
+                            <capsuleGeometry args={[0.015, 0.12, 4, 8]} />
+                            <meshStandardMaterial color="#eebb44" roughness={1} />
+                        </mesh>
+                     </group>
+                 </group>
+             ))}
+             {/* Style */}
+             <group rotation={[Math.PI / 2 + 0.1, 0, 0]}>
+                <mesh position={[0, 0.35, 0]}>
+                    <cylinderGeometry args={[0.005, 0.005, 0.7, 5]} />
+                    <meshStandardMaterial color="#ffeebb" />
+                </mesh>
+                <mesh position={[0, 0.7, 0]}>
+                    <sphereGeometry args={[0.025, 6, 6]} />
+                    <meshStandardMaterial color="#ffffff" />
+                </mesh>
+             </group>
+        </group>
+    );
+}
+
+function Floret({ scale, openness, hueVariation }) {
+  if (openness < 0.1) {
+    // Bud
+    return (
+        <group scale={scale} rotation={[Math.PI/2, 0, 0]}>
+             <mesh position={[0, 0.2, 0]}>
+                 <cylinderGeometry args={[0.0, 0.08, 0.5, 8]} />
+                 <meshStandardMaterial color="#8da365" roughness={0.8} />
+             </mesh>
+             <mesh position={[0, 0.45, 0]}>
+                 <sphereGeometry args={[0.04, 8, 8]} />
+                 <meshStandardMaterial color="#cc5500" />
+             </mesh>
+        </group>
+    )
+  }
 
   return (
-    <group>
-      {/* --- Central Base/Ovary (Small and dark green) --- */}
-      <mesh position-y={0.0 * scale}> 
-        <cylinderGeometry args={[0.05 * scale, 0.04 * scale, 0.08 * scale, 8]} /> 
-        <meshStandardMaterial color={0x4a5a3a} roughness={0.7} metalness={0.05} /> 
+    <group scale={scale}>
+      {/* Base (Calyx) */}
+      <mesh position={[0, 0, -0.05]} rotation={[Math.PI/2, 0, 0]}>
+         <cylinderGeometry args={[0.04, 0.03, 0.15, 8]} />
+         <meshStandardMaterial color="#6b8c42" />
       </mesh>
 
-      {/* --- Petals --- */}
-      {Array.from({ length: petalCount }).map((_, i) => {
-        // **USE LIMITED ANGULAR SPREAD**
-        const angle = (i / petalCount) * angularSpread + angularStartOffset;
-        
-        // **REVISED BASE TILT (Slightly cupped)**
-        const baseTilt = Math.PI * (0.05 + (1 - openness) * 0.35); 
-        
+      {/* FLOWER HEAD */}
+      <group rotation={[-0.2, 0, 0]}>
+          {/* Stamens */}
+          <group position={[0, 0, 0]}>
+             <StamenCluster isOpen={openness} />
+          </group>
+
+          {/* Petals */}
+          {[0, 1, 2].map((i) => (
+            <group key={`inner-${i}`} rotation={[0, 0, (i / 3) * Math.PI * 2]}>
+                <group rotation={[Math.PI/2 - (0.2 + 0.3 * openness), 0, 0]}> 
+                   <group position={[0, 0.05, 0]}>
+                      <Petal width={0.4} length={0.8} colorVariation={hueVariation} bend={0.3 * openness} />
+                   </group>
+                </group>
+            </group>
+          ))}
+
+          {[0, 1, 2].map((i) => (
+             <group key={`outer-${i}`} rotation={[0, 0, ((i / 3) * Math.PI * 2) + Math.PI/3]}>
+                <group rotation={[Math.PI/2 - (0.3 + 0.4 * openness), 0, 0]}>
+                   <group position={[0, 0.05, 0.01]}>
+                      <Petal width={0.5} length={0.9} colorVariation={hueVariation} bend={0.4 * openness} />
+                   </group>
+                </group>
+             </group>
+          ))}
+      </group>
+    </group>
+  );
+}
+
+function Stem() {
+  const curve = useMemo(() => new THREE.CatmullRomCurve3([
+    new THREE.Vector3(0, -3.0, 0), // Started lower for leaves
+    new THREE.Vector3(0, 0, 0),
+    new THREE.Vector3(0.05, 2.5, 0.05),
+    // FIX: Shortened the top of the stem significantly (was 5.0)
+    new THREE.Vector3(-0.02, 4.2, -0.02) 
+  ]), []);
+
+  const tubeGeometry = useMemo(() => {
+    return new THREE.TubeGeometry(curve, 64, 0.06, 12, false);
+  }, [curve]);
+
+  return (
+    <mesh geometry={tubeGeometry}>
+      <meshStandardMaterial color="#557a46" roughness={0.8} />
+    </mesh>
+  );
+}
+
+// --- IMPROVED LEAF COMPONENT (Softer, curved shape) ---
+function Leaf({ length, width, angle, rotation, yPos }) {
+  const shape = useMemo(() => {
+    const s = new THREE.Shape();
+    // Sword shape with gentle curves
+    s.moveTo(0, 0);
+    s.bezierCurveTo(width * 0.2, length * 0.3, width * 0.5, length * 0.7, 0, length);
+    s.bezierCurveTo(-width * 0.5, length * 0.7, -width * 0.2, length * 0.3, 0, 0);
+    return s;
+  }, [length, width]);
+
+  const geometry = useMemo(() => {
+      // Added bevel for softer edges
+      const geo = new THREE.ExtrudeGeometry(shape, { 
+        depth: 0.03, 
+        bevelEnabled: true,
+        bevelThickness: 0.01,
+        bevelSize: 0.02,
+        bevelSegments: 2
+      });
+      return geo;
+  }, [shape]);
+
+  return (
+    <group position={[0, yPos, 0]} rotation={[0, rotation, 0]}>
+        <mesh 
+            geometry={geometry} 
+            rotation={[angle, 0, 0]} 
+            // Pushed further out to avoid clipping stem
+            position={[0, 0, 0.07]} 
+        >
+            <meshStandardMaterial color="#4a6e3a" roughness={0.5} side={THREE.DoubleSide} />
+        </mesh>
+    </group>
+  );
+}
+
+function Gladiolus() {
+  const groupRef = useRef();
+
+  useFrame((state) => {
+    if (groupRef.current) {
+      groupRef.current.rotation.z = Math.sin(state.clock.elapsedTime * 0.5) * 0.02;
+    }
+  });
+
+  // --- LEAF DATA (Lower positions to avoid clipping flowers) ---
+  const leaves = useMemo(() => [
+    { length: 3.5, width: 0.4, angle: 0.4, rotation: 0.2, yPos: -2.8 },
+    { length: 3.0, width: 0.35, angle: 0.35, rotation: Math.PI + 0.4, yPos: -2.2 },
+    { length: 2.5, width: 0.3, angle: 0.4, rotation: -0.8, yPos: -1.5 },
+  ], []);
+  
+  const floretPositions = useMemo(() => {
+      const arr = [];
+      const startY = 0.0; 
+      const count = 14; 
+      
+      for(let i=0; i<count; i++) {
+          const t = i / (count - 1);
+          const side = i % 2 === 0 ? 1 : -1;
+          arr.push({
+              y: startY + i * 0.3, 
+              side: side,
+              scale: 1.1 - (t * 0.6), 
+              openness: Math.max(0, 1.0 - (t * 1.1)) 
+          });
+      }
+      return arr;
+  }, []);
+
+  return (
+    // Base position of the whole spike
+    <group ref={groupRef} position={[0, 0, 0]}>
+      <Stem />
+      
+      {/* RENDER LEAVES */}
+      {leaves.map((leaf, i) => <Leaf key={`leaf-${i}`} {...leaf} />)}
+
+      {floretPositions.map((pos, index) => {
+        const hueVariation = (Math.random() - 0.5) * 5; 
+        const angle = pos.side * 0.6; 
+
         return (
           <group
-            key={i}
-            // Petal position lifted Y (0.06)
-            position={[Math.cos(angle) * 0.04 * scale, 0.06 * scale, Math.sin(angle) * 0.04 * scale]} 
-            
-            rotation={[
-              baseTilt + (Math.random() - 0.5) * 0.08, 
-              // Set yaw rotation
-              angle + Math.PI / 2, 
-              (Math.random() - 0.5) * 0.04
+            key={index}
+            position={[
+                Math.sin(angle) * 0.1,  
+                pos.y,                  
+                Math.cos(angle) * 0.1 + 0.05 
             ]}
+            rotation={[0, angle, 0]}
           >
-            {/* Rotate petal mesh by -90 degrees around X to make it stand up from the XY plane */}
-            <group rotation={[-Math.PI / 2 + Math.sin(angle * 3) * 0.1, 0, 0]}>
-              <Petal size={0.5 * scale} hueVariation={hueVariation} />
-            </group>
-          </group>
-        );
-      })}
-
-      {/* --- Stamens --- */}
-      {openness > 0.4 && Array.from({ length: 3 }).map((_, i) => {
-        // **NEW STAMEN POSITIONING (Anchored and spread)**
-        const stamenX = (i / 3 - 0.5) * 0.03 * scale; // Spread slightly left and right (X-axis)
-        const stamenZ = 0.05 * scale; // Push forward (Z-axis)
-
-        return (
-          <group key={i}>
-            <mesh
-              // Fixed position relative to the floret, anchored forward
-              position={[stamenX, 0.12 * scale, stamenZ]}
-              rotation={[Math.PI / 2 + (Math.random() - 0.5) * 0.2 + Math.PI * 0.15, 0, 0]} 
-            >
-              <cylinderGeometry args={[0.008, 0.008, 0.2 * scale, 6]} />
-              <meshStandardMaterial color={0xf4e4c1} roughness={0.5} />
-              {/* Raised anther sphere slightly */}
-              <mesh position-y={0.12 * scale}>
-                <sphereGeometry args={[0.02 * scale, 8, 8]} />
-                <meshStandardMaterial color={0xd4a356} roughness={0.4} />
-              </mesh>
-            </mesh>
+             <Floret scale={pos.scale} openness={pos.openness} hueVariation={hueVariation} />
           </group>
         );
       })}
@@ -148,63 +301,9 @@ function Floret({ scale, openness, hueVariation }) {
   );
 }
 
-function Stem() {
-  const curve = useMemo(() => new THREE.CatmullRomCurve3([
-    new THREE.Vector3(0, 0, 0),
-    new THREE.Vector3(0.05, 1.2, 0.02),
-    new THREE.Vector3(-0.03, 2.5, -0.01),
-    new THREE.Vector3(0.02, 3.8, 0.03),
-    new THREE.Vector3(0, 5, 0)
-  ]), []);
-
-  const tubeGeometry = useMemo(() => {
-    const tubePath = new THREE.CatmullRomCurve3(curve.getPoints(50));
-    const geom = new THREE.TubeGeometry(tubePath, 50, 0.08, 12, false);
-    return geom;
-  }, [curve]);
-
-  return (
-    <mesh geometry={tubeGeometry}>
-      <meshStandardMaterial color={0x6b7a5c} roughness={0.8} metalness={0.1} />
-    </mesh>
-  );
-}
-
-function Leaf({ length, width, angle, rotation }) {
-  const shape = useMemo(() => {
-    const s = new THREE.Shape();
-    s.moveTo(0, 0);
-    s.quadraticCurveTo(width * 0.4, length * 0.2, width * 0.5, length * 0.4);
-    s.quadraticCurveTo(width * 0.45, length * 0.7, width * 0.2, length * 0.9);
-    s.lineTo(0, length);
-    s.lineTo(-width * 0.2, length * 0.9);
-    s.quadraticCurveTo(-width * 0.45, length * 0.7, -width * 0.5, length * 0.4);
-    s.quadraticCurveTo(-width * 0.4, length * 0.2, 0, 0);
-    return s;
-  }, [length, width]);
-
-  const extrudeSettings = useMemo(() => ({
-    depth: 0.03,
-    bevelEnabled: true,
-    bevelThickness: 0.015,
-    bevelSize: 0.015,
-    bevelSegments: 2
-  }), []);
-
-  return (
-    <mesh
-      position={[Math.cos(rotation) * 0.1, 0.3 + Math.random() * 0.3, Math.sin(rotation) * 0.1]}
-      rotation={[Math.sin(rotation) * 0.1, rotation, -angle]}
-    >
-      <extrudeGeometry args={[shape, extrudeSettings]} />
-      <meshStandardMaterial color={0x6b7a5c} roughness={0.7} metalness={0.1} side={THREE.DoubleSide} />
-    </mesh>
-  );
-}
-
 function Particles() {
   const ref = useRef();
-  const count = 150;
+  const count = 60;
   const positions = useMemo(() => {
     const pos = new Float32Array(count * 3);
     for (let i = 0; i < count * 3; i++) {
@@ -215,7 +314,7 @@ function Particles() {
 
   useFrame((state) => {
     if (ref.current) {
-      ref.current.rotation.y = state.clock.getElapsedTime() * 0.02;
+      ref.current.rotation.y = state.clock.getElapsedTime() * 0.03;
     }
   });
 
@@ -224,75 +323,8 @@ function Particles() {
       <bufferGeometry>
         <bufferAttribute attach="attributes-position" count={count} array={positions} itemSize={3} />
       </bufferGeometry>
-      <pointsMaterial size={0.03} color="#ffab73" transparent opacity={0.5} sizeAttenuation />
+      <pointsMaterial size={0.07} color="#ffddaa" transparent opacity={0.4} sizeAttenuation />
     </points>
-  );
-}
-
-function Gladiolus() {
-  const groupRef = useRef();
-
-  useFrame((state) => {
-    if (groupRef.current) {
-      groupRef.current.rotation.z = Math.sin(state.clock.elapsedTime) * 0.02;
-      groupRef.current.rotation.x = Math.cos(state.clock.elapsedTime * 0.7) * 0.01;
-    }
-  });
-
-  const leaves = useMemo(() => [
-    { length: 2.5, width: 0.15, angle: 0.3, rotation: 0 },
-    { length: 2.8, width: 0.16, angle: 0.25, rotation: 2.1 },
-    { length: 2.3, width: 0.14, angle: 0.35, rotation: 4.0 },
-    { length: 2.0, width: 0.13, angle: 0.4, rotation: 1.2 },
-    { length: 1.5, width: 0.11, angle: 0.3, rotation: 3.5 }
-  ], []);
-  
-  const floretPositions = useMemo(() => [
-    { y: 2.3, row: 0, scale: 1.1, openness: 1.0 },
-    { y: 2.65, row: 1, scale: 1.05, openness: 0.95 },
-    { y: 3.0, row: 0, scale: 1.0, openness: 0.9 },
-    { y: 3.3, row: 1, scale: 0.95, openness: 0.85 },
-    { y: 3.6, row: 0, scale: 0.88, openness: 0.75 },
-    { y: 3.85, row: 1, scale: 0.82, openness: 0.65 },
-    { y: 4.1, row: 0, scale: 0.75, openness: 0.5 },
-    { y: 4.3, row: 1, scale: 0.68, openness: 0.35 },
-    { y: 4.5, row: 0, scale: 0.6, openness: 0.2 },
-    { y: 4.65, row: 1, scale: 0.5, openness: 0.1 },
-    { y: 4.8, row: 0, scale: 0.4, openness: 0.05 },
-    // **BUDS TO CLOSE THE TOP OF THE SPIKE**
-    { y: 4.95, row: 1, scale: 0.3, openness: 0.01 }, 
-    { y: 5.05, row: 0, scale: 0.2, openness: 0.01 }  
-  ], []);
-
-  return (
-    <group ref={groupRef}>
-      <Stem />
-      {leaves.map((leaf, i) => <Leaf key={i} {...leaf} />)}
-      {floretPositions.map((pos, index) => {
-        const hueVariation = (Math.random() - 0.5) * 6;
-        const stemRadius = 0.05;
-        
-        // **SECUND PLACEMENT LOGIC**
-        const lateralOffset = (pos.row === 0 ? 1 : -1) * stemRadius * 1.5; 
-        const forwardOffset = stemRadius * 0.8; 
-
-        return (
-          <group
-            key={index}
-            // Position restricted to the front, alternating left/right
-            position={[lateralOffset, pos.y, forwardOffset]}
-            rotation={[
-                (Math.random() - 0.5) * 0.2, 
-                // Rotate left or right slightly to emerge gracefully from the side
-                (pos.row === 0 ? -Math.PI * 0.1 : Math.PI * 0.1) + (Math.random() - 0.5) * 0.3, 
-                (Math.random() - 0.5) * 0.15
-            ]}
-          >
-            <Floret scale={pos.scale} openness={pos.openness} hueVariation={hueVariation} />
-          </group>
-        );
-      })}
-    </group>
   );
 }
 
@@ -302,22 +334,30 @@ export default function OrangeGladiolus() {
       <style>{animatedBackgroundStyle}</style>
       <div className="w-full h-screen green-gradient-bg">
         <Canvas
-          camera={{ position: [3, 3, 6], fov: 45 }}
+          // CAMERA ADJUSTMENT: Closer Z (10), higher Y (4) to look down slightly
+          camera={{ position: [0, 4, 10], fov: 35 }}
           shadows
         >
-          <ambientLight intensity={0.5} />
-          <directionalLight
-            position={[5, 8, 4]}
-            intensity={0.8}
-            castShadow
+          <ambientLight intensity={0.6} />
+          <directionalLight 
+            position={[5, 8, 5]} 
+            intensity={1.2} 
+            castShadow 
+            color="#fff0dd"
           />
-          <directionalLight position={[-3, 4, -3]} intensity={0.3} color={0xffa366} />
-          <directionalLight position={[-2, 2, 4]} intensity={0.2} color={0xb3d9ff} />
-          <group position-y={-2.5}>
-            <Gladiolus />
+          <directionalLight position={[-5, 5, 2]} intensity={0.5} color="#ffdcb3" />
+          <pointLight position={[0, 2, 4]} intensity={0.3} color="#ffeebb" />
+          
+          {/* POSITION ADJUSTMENT: Raised to prevent top from being cut off */}
+          <group position-y={-1.5}>
+            <Float speed={1.5} rotationIntensity={0.1} floatIntensity={0.2}>
+                 <Gladiolus />
+            </Float>
           </group>
+          
           <Particles />
-          <OrbitControls />
+          {/* TARGET ADJUSTMENT: Look at the middle-top of the flower spike */}
+          <OrbitControls enableZoom={true} target={[0, 1, 0]} />
         </Canvas>
       </div>
     </>
