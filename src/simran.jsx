@@ -1,6 +1,6 @@
 import React, { useRef, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls } from '@react-three/drei';
+import { OrbitControls, Sparkles } from '@react-three/drei';
 import * as THREE from 'three';
 
 // ---------- 1. WIDER PETAL WITH BOLD PICOTEE TIPS ----------
@@ -262,35 +262,14 @@ function PinkCarnation() {
       <group position={[0, 2.0, 0]}>
         <CarnationHead scale={1.3} hueVariation={0} />
       </group>
-      <Particles />
+
     </group>
   );
 }
 
-function Particles() {
-  const ref = useRef();
-  const count = 60;
-  const positions = useMemo(() => {
-    const pos = new Float32Array(count * 3);
-    for (let i = 0; i < count * 3; i++) {
-      pos[i] = (Math.random() - 0.5) * 10;
-    }
-    return pos;
-  }, []);
-
-  useFrame((state) => {
-    if (ref.current) {
-      ref.current.rotation.y = state.clock.getElapsedTime() * 0.03;
-    }
-  });
-
+function SparklesComponent() {
   return (
-    <points ref={ref}>
-      <bufferGeometry>
-        <bufferAttribute attach="attributes-position" count={count} array={positions} itemSize={3} />
-      </bufferGeometry>
-      <pointsMaterial size={0.07} color="#ff69b4" transparent opacity={0.4} sizeAttenuation />
-    </points>
+    <Sparkles count={40} scale={10} size={3} speed={0.4} opacity={0.4} color="#60a5fa" />
   );
 }
 
@@ -319,6 +298,7 @@ export default function PinkCarnationScene() {
             <PinkCarnation />
           </group>
 
+          <SparklesComponent />
           <OrbitControls target={[0, 1.5, 0]} />
         </Canvas>
       </div>

@@ -1,232 +1,77 @@
-import React, { useState, useRef, useMemo } from 'react';
-import { useFrame } from '@react-three/fiber';
-import { OrbitControls } from '@react-three/drei';
+import React, { useMemo } from 'react';
+import { Canvas } from '@react-three/fiber';
+import { OrbitControls, Float, Sparkles } from '@react-three/drei';
 import * as THREE from 'three';
 
-// L-System implementation
-class LSystem {
-  constructor(axiom, rules, iterations) {
-    this.axiom = axiom;
-    this.rules = rules;
-    this.iterations = iterations;
+// --- BACKGROUND ---
+const animatedBackgroundStyle = `
+  @keyframes green-gradient {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
   }
-
-  generate() {
-    let current = this.axiom;
-    for (let i = 0; i < this.iterations; i++) {
-      let next = '';
-      for (let char of current) {
-        next += this.rules[char] || char;
-      }
-      current = next;
-    }
-    return current;
+  .green-gradient-bg {
+    background: linear-gradient(-45deg, #0f172a, #166534, #0f172a);
+    background-size: 400% 400%;
+    animation: green-gradient 30s ease infinite;
   }
-}
+`;
 
-// Interpret L-system string into 3D positions and orientations
-function interpretLSystem(lString, angleVariation = 25, segmentLength = 0.15) {
-  const branches = [];
-  const stack = [];
-  let position = new THREE.Vector3(0, 0, 0);
-  let direction = new THREE.Vector3(0, 1, 0);
-  let rotation = new THREE.Euler(0, 0, 0);
-
-  const angle = angleVariation * Math.PI / 180;
-
-  for (let char of lString) {
-    switch(char) {
-      case 'F': // Move forward and draw
-        const newPos = position.clone().add(
-          direction.clone().multiplyScalar(segmentLength)
-        );
-        branches.push({
-          start: position.clone(),
-          end: newPos.clone(),
-          rotation: rotation.clone()
-        });
-        position = newPos;
-        break;
-
-      case '+': // Turn right
-        const rightQuat = new THREE.Quaternion().setFromAxisAngle(
-          new THREE.Vector3(0, 0, 1), angle
-        );
-        direction.applyQuaternion(rightQuat);
-        break;
-
-      case '-': // Turn left
-        const leftQuat = new THREE.Quaternion().setFromAxisAngle(
-          new THREE.Vector3(0, 0, 1), -angle
-        );
-        direction.applyQuaternion(leftQuat);
-        break;
-
-      case '&': // Pitch down
-        const pitchQuat = new THREE.Quaternion().setFromAxisAngle(
-          new THREE.Vector3(1, 0, 0), angle
-        );
-        direction.applyQuaternion(pitchQuat);
-        break;
-
-      case '^': // Pitch up
-        const pitchUpQuat = new THREE.Quaternion().setFromAxisAngle(
-          new THREE.Vector3(1, 0, 0), -angle
-        );
-        direction.applyQuaternion(pitchUpQuat);
-        break;
-
-      case '\\': // Roll right
-        const rollQuat = new THREE.Quaternion().setFromAxisAngle(
-          new THREE.Vector3(0, 1, 0), angle
-        );
-        direction.applyQuaternion(rollQuat);
-        break;
-
-      case '/': // Roll left
-        const rollLeftQuat = new THREE.Quaternion().setFromAxisAngle(
-          new THREE.Vector3(0, 1, 0), -angle
-        );
-        direction.applyQuaternion(rollLeftQuat);
-        break;
-
-      case '[': // Save state
-        stack.push({
-          position: position.clone(),
-          direction: direction.clone(),
-          rotation: rotation.clone()
-        });
-        break;
-
-      case ']': // Restore state
-        const state = stack.pop();
-        if (state) {
-          position = state.position;
-          direction = state.direction;
-          rotation = state.rotation;
-        }
-        break;
-    }
-  }
-
-  return branches;
-}
-
-// Individual leaf
-function Leaf({ position, rotation, scale }) {
-  const leafRef = useRef();
-
-  useFrame((state) => {
-    const t = state.clock.getElapsedTime();
-    if (leafRef.current) {
-      // A subtle sway animation
-      leafRef.current.rotation.z += Math.sin(t * 0.5 + position.x * 10) * 0.001;
-    }
-  });
-
-  const leafShape = new THREE.Shape();
-  // A simple, elegant leaf shape
-  leafShape.moveTo(0, 0);
-  leafShape.quadraticCurveTo(0.4, 0.5, 0.5, 1.2); // Right side curve
-  leafShape.quadraticCurveTo(0.2, 0.8, -0.5, 1.2); // Tip and left side curve
-  leafShape.quadraticCurveTo(-0.4, 0.5, 0, 0);  // Curve back to base
-
-  const extrudeSettings = {
-      steps: 1,
-      depth: 0.01,
-      bevelEnabled: true,
-      bevelThickness: 0.02,
-      bevelSize: 0.01,
-      bevelSegments: 1
-  };
-
-  const leafGeometry = new THREE.ExtrudeGeometry(leafShape, extrudeSettings);
+// =========================================================
+//  HELPER: CURVED STEMS (TubeGeometry)
+// =========================================================
+function OrganicStem({ start, end, control, thickness, color = "#0f330f" }) {
+  const curve = useMemo(() => {
+    return new THREE.QuadraticBezierCurve3(
+      new THREE.Vector3(...start),
+      new THREE.Vector3(...control),
+      new THREE.Vector3(...end)
+    );
+  }, [start, end, control]);
 
   return (
-    <group ref={leafRef} position={position} rotation={rotation} scale={scale}>
-      <mesh geometry={leafGeometry} rotation={[Math.PI / 2, 0, 0]}>
-        <meshStandardMaterial
-          color="#2f5f2a"
-          side={THREE.DoubleSide}
-          roughness={0.4}
-          metalness={0.1}
-        />
-      </mesh>
-    </group>
+    <mesh>
+      <tubeGeometry args={[curve, 32, thickness, 8, false]} />
+      <meshStandardMaterial color={color} roughness={0.7} />
+    </mesh>
   );
 }
 
-// Bent Leaf with a stem, designed to look more natural
-function BentLeaf({ position, rotation, scale }) {
-  const leafRef = useRef();
-
-  const leafHeight = 1.2; // The height of the leaf blade
-  const stemHeight = 0.4; // The length of the stem
-  const stemThickness = 0.02;
-
-  // Memoize the geometry for the leaf blade to prevent re-creating it on every render
-  const bentLeafGeometry = useMemo(() => {
-    const leafShape = new THREE.Shape();
-    // A simple, elegant leaf shape
-    leafShape.moveTo(0, 0);
-    leafShape.quadraticCurveTo(0.4, 0.5, 0.5, 1.2); // Right side
-    leafShape.quadraticCurveTo(0.2, 0.8, -0.5, 1.2); // Tip and left side
-    leafShape.quadraticCurveTo(-0.4, 0.5, 0, 0);  // Curve back to base
-
-    const extrudeSettings = {
-      steps: 2,
-      depth: 0.01,
-      bevelEnabled: true,
-      bevelThickness: 0.02,
-      bevelSize: 0.01,
-      bevelSegments: 2,
-    };
-
-    const geom = new THREE.ExtrudeGeometry(leafShape, extrudeSettings);
-    const positions = geom.attributes.position;
-
-    // Deform the geometry to create a bend only at the tip
-    for (let i = 0; i < positions.count; i++) {
-      const y = positions.getY(i);
-      const normalizedY = y / leafHeight;
-
-      const bendThreshold = 0.5;
-      if (normalizedY > bendThreshold) {
-        const t = (normalizedY - bendThreshold) / (1.0 - bendThreshold);
-        const bendFactor = Math.pow(t, 2) * -0.8;
-        positions.setZ(i, positions.getZ(i) + bendFactor);
-      }
-    }
-
-    geom.computeVertexNormals(); // Recalculate normals for accurate lighting
-    return geom;
-  }, [leafHeight]);
-
-  return (
-    <group ref={leafRef} position={position} rotation={rotation} scale={scale}>
-      {/* Stem: A cylinder positioned to extend downwards from the leaf blade */}
-      <mesh position={[0, -stemHeight / 2, 0]}>
-        <cylinderGeometry args={[stemThickness, stemThickness, stemHeight, 6]} />
-        <meshStandardMaterial color="#4a7a3a" roughness={0.6} />
-      </mesh>
-
-      {/* Leaf Blade: Positioned at the origin of the group, appearing to grow from the stem */}
-      <mesh geometry={bentLeafGeometry} rotation={[Math.PI / 2, 0, 0]}>
-        <meshStandardMaterial
-          color="#2f5f2a"
-          side={THREE.DoubleSide}
-          roughness={0.5}
-          metalness={0.1}
-        />
-      </mesh>
-    </group>
-  );
+// =========================================================
+//  HELPER: TEXTURED SPADIX (For the curled bud)
+// =========================================================
+function TexturedSpadix({ height, radius, color }) {
+  const meshRef = useMemo(() => {
+    const baseGeo = new THREE.CylinderGeometry(radius, radius, height, 16);
+    const bumpCount = 200;
+    return (
+      <group>
+        <mesh geometry={baseGeo}>
+           <meshStandardMaterial color={color} roughness={0.8} />
+        </mesh>
+        {Array.from({ length: bumpCount }).map((_, i) => {
+           const y = (Math.random() - 0.5) * height;
+           const angle = Math.random() * Math.PI * 2;
+           const r = radius; 
+           return (
+             <mesh key={i} position={[Math.cos(angle)*r, y, Math.sin(angle)*r]}>
+                <sphereGeometry args={[radius * 0.25, 4, 4]} />
+                <meshStandardMaterial color={color} />
+             </mesh>
+           )
+        })}
+      </group>
+    )
+  }, [height, radius, color]);
+  return meshRef;
 }
 
-// Peace Lily Flower
-function PeaceLilyFlower({ position, glowIntensity }) {
-  // Create a memoized geometry for the spathe, with added curvature.
-  const spatheGeometry = useMemo(() => {
+// =========================================================
+//  ENGINE 1: THE "ORIGINAL" FLOWER GEOMETRY
+//  (Ported exactly from your first code snippet)
+// =========================================================
+function useOriginalFlowerGeo() {
+  return useMemo(() => {
     // 1. Define the 2D shape of the petal
     const spatheShape = new THREE.Shape();
     spatheShape.moveTo(0, 0);
@@ -236,197 +81,233 @@ function PeaceLilyFlower({ position, glowIntensity }) {
     spatheShape.bezierCurveTo(-0.3, 0.5, -0.25, 0.2, 0, 0);
 
     const extrudeSettings = {
-      depth: 0.02, // Reduced thickness for a more delicate look
+      depth: 0.02,
       bevelEnabled: true,
       bevelThickness: 0.01,
       bevelSize: 0.01,
       bevelSegments: 2
     };
 
-    // 2. Create the base geometry
+    // 2. Create base geometry
     const geom = new THREE.ExtrudeGeometry(spatheShape, extrudeSettings);
     const positions = geom.attributes.position;
-    const petalHeight = 1.05; // Height is known from the shape definition
+    const petalHeight = 1.05;
 
-    // 3. Deform the geometry for a more organic look
+    // 3. Deform the geometry
     for (let i = 0; i < positions.count; i++) {
       const y = positions.getY(i);
-      const normalizedY = y / petalHeight; // Normalize Y to a 0-1 range
-
-      // Add a gentle C-curve along the petal's length (in the z-direction)
+      const normalizedY = y / petalHeight;
+      // Add a gentle C-curve along the petal's length
       const curve = -Math.sin(normalizedY * Math.PI) * 0.07;
-
       // Add a slight backward bend, strongest at the tip
       const tipBend = Math.pow(normalizedY, 5) * -0.12;
-
-      // Apply the deformations to the vertex's Z position
       positions.setZ(i, positions.getZ(i) + curve + tipBend);
     }
 
-    geom.computeVertexNormals(); // Recalculate normals for correct lighting
+    geom.computeVertexNormals();
+    // Center pivot to bottom
+    geom.translate(0, -petalHeight/2, 0);
+    geom.translate(0, petalHeight/2, 0);
     return geom;
   }, []);
+}
+
+// =========================================================
+//  ENGINE 2: SOFT ORGANIC ENGINE (For Bud & Green Leaf)
+// =========================================================
+const createSoftOrganicGeo = ({ width, height, curvature, isBud = false, isRibbed = false }) => {
+    const shape = new THREE.Shape(); shape.moveTo(0,0);
+    if(isBud){ shape.quadraticCurveTo(-width/2, height*0.3, -width*0.1, height); shape.quadraticCurveTo(width/2, height*0.3, 0,0); }
+    else{ shape.bezierCurveTo(-width*0.6, height*0.2, -width*0.5, height*0.7, 0, height); shape.bezierCurveTo(width*0.5, height*0.7, width*0.6, height*0.2, 0,0); }
+
+    const geometry = new THREE.ExtrudeGeometry(shape, { steps: 24, depth: 0.01, bevelEnabled: true, bevelThickness: 0.005, bevelSize: 0.01, bevelSegments: 3 });
+    geometry.translate(0, -height / 2, 0); geometry.translate(0, height / 2, 0);
+    const pos = geometry.attributes.position; const v = new THREE.Vector3(); geometry.computeBoundingBox();
+    const minY = geometry.boundingBox.min.y; const h = geometry.boundingBox.max.y - minY;
+
+    for (let i = 0; i < pos.count; i++) {
+      v.fromBufferAttribute(pos, i); const yRel = Math.max(0, (v.y - minY) / h);
+      
+      // --- IMPROVED VEIN MATH ---
+      if (isRibbed && !isBud) { 
+        // Central midrib depression
+        const midribFalloff = Math.pow(Math.abs(v.x / (width/2.2)), 0.5);
+        v.z -= (1.0 - midribFalloff) * 0.03 * yRel;
+        
+        // Lateral veins angling outwards
+        const veinFreq = 25.0;
+        const veinAngle = 2.5;
+        const veinWave = Math.cos((v.y * veinFreq) - (Math.abs(v.x) * veinAngle));
+        v.z += veinWave * 0.007 * yRel * (1.0 - midribFalloff);
+      }
+
+      const arch = Math.pow(yRel, 2) * curvature.back; v.z -= arch;
+      const cup = Math.pow(Math.abs(v.x), 1.8) * curvature.cup * (1 - yRel * 0.5); v.z += cup;
+      if (isBud) { const twist = yRel * 7.0; const tx = v.x * Math.cos(twist) - (v.z+0.05) * Math.sin(twist); const tz = v.x * Math.sin(twist) + (v.z+0.05) * Math.cos(twist); v.x = tx; v.z = tz - 0.05; }
+      v.y -= Math.sin(arch) * (h * 0.15); pos.setXYZ(i, v.x, v.y, v.z);
+    }
+    geometry.computeVertexNormals(); return geometry;
+  };
+
+
+// =========================================================
+//  COMPONENT 1: THE "ORIGINAL" WIDE FLOWER (Left)
+// =========================================================
+function TheOriginalFlower() {
+  const stemStart = [-0.1, 0, 0.1];
+  const stemEnd = [-0.3, 1.3, 0.2];
+  
+  // Use the ported geometry
+  const geo = useOriginalFlowerGeo();
 
   return (
-    <group position={position}>
-      {/* White spathe with custom curved geometry, lowered to meet the spadix */}
-      <mesh geometry={spatheGeometry} rotation={[-0.3, 0, 0]} position={[0, -0.075, 0]}>
-        <meshStandardMaterial
-          color="#fdfdf8"
-          side={THREE.DoubleSide}
-          roughness={0.3}
-          metalness={0.05}
-        />
-      </mesh>
-
-      {/* Spadix (pushed back slightly) */}
-      <group position={[0, 0.15, -0.02]}>
-        <mesh>
-          <cylinderGeometry args={[0.03, 0.04, 0.45, 12]} />
-          <meshStandardMaterial
-            color="#dcd494"
-            roughness={0.7}
-            emissive="#f0e4a0"
-            emissiveIntensity={glowIntensity}
-          />
+    <group>
+      <OrganicStem start={stemStart} end={stemEnd} control={[-0.15, 0.6, 0.1]} thickness={0.022} />
+      
+      {/* Place the geo at the end of the stem */}
+      <group position={stemEnd} rotation={[0.3, 0, 0]}>
+        <mesh geometry={geo} scale={[1.3, 1.3, 1.3]}> {/* Scaled up slightly */}
+          <meshStandardMaterial color="#fdfdf8" side={THREE.DoubleSide} roughness={0.3} metalness={0.05} />
         </mesh>
 
-        {/* Texture bumps */}
-        {Array.from({ length: 25 }).map((_, i) => {
-          const y = (i / 25) * 0.45 - 0.225;
-          const angle = (i * 137.5 * Math.PI) / 180;
-          const radius = 0.032;
-          return (
-            <mesh
-              key={i}
-              position={[
-                Math.cos(angle) * radius,
-                y,
-                Math.sin(angle) * radius
-              ]}
-            >
-              <sphereGeometry args={[0.008, 4, 4]} />
-              <meshStandardMaterial color="#c4b87a" roughness={0.9} />
-            </mesh>
-          );
-        })}
+        {/* The simple cylinder spadix from the original code style */}
+        <mesh position={[0, 0.5, 0.02]} rotation={[0.1, 0, 0]}>
+           <cylinderGeometry args={[0.035, 0.04, 0.7, 16]} />
+           <meshStandardMaterial color="#f2e8b6" roughness={0.8} />
+        </mesh>
       </group>
     </group>
   );
 }
 
-// Generates a circle of leaves facing outwards
-function Leaves() {
-  const leafCount = 4; // Simplified to 4 leaves as requested
-  const leaves = useMemo(() => {
-    return Array.from({ length: leafCount }).map((_, i) => {
-      // Position them symmetrically
-      const angle = (i / leafCount) * Math.PI * 2;
-      const radius = 0.25; // A slightly larger, fixed radius for spacing
+// =========================================================
+//  COMPONENT 2: THE CURLED BUD (Right)
+// =========================================================
+function TheCurledBud() {
+  const stemStart = [0.2, 0, 0.05];
+  const stemEnd = [0.35, 1.5, 0.1];
 
-      const x = Math.cos(angle) * radius;
-      const z = Math.sin(angle) * radius;
-
-      // Orient them to face outwards
-      const rotationY = angle + Math.PI / 2;
-
-      return {
-        position: [x, 0.1, z],
-        rotation: [
-          0.4, // Consistent upward pitch
-          rotationY,
-          0
-        ],
-        scale: 0.9 // Consistent scale
-      };
-    });
-  }, []);
+  // Use soft engine for the curl
+  const geo = useMemo(() => createSoftOrganicGeo({
+    width: 0.45, height: 1.8, curvature: { back: 0.1, cup: 3.5 }, isBud: true
+  }), []);
 
   return (
     <group>
-      {leaves.map((props, i) => (
-        <Leaf key={i} {...props} />
-      ))}
+      <OrganicStem start={stemStart} end={stemEnd} control={[0.3, 0.7, 0.05]} thickness={0.022} />
+      
+      <group position={stemEnd} rotation={[0.1, 0.3, 0]}>
+          
+          {/* --- FIX: SEAMLESS STEM CONNECTION --- */}
+          {/* Internal stem is now green to match, creating a continuous look */}
+          <mesh position={[0, 0.4, 0.02]}>
+             <cylinderGeometry args={[0.02, 0.022, 0.8, 8]} />
+             <meshStandardMaterial color="#0f330f" roughness={0.7} /> 
+          </mesh>
+
+          {/* TEXTURED SPADIX sitting perfectly on the green internal stem */}
+          <group position={[0, 0.8, 0.04]}> 
+             <TexturedSpadix height={0.8} radius={0.025} color="#f2e8b6" />
+          </group>
+
+          {/* The Bract */}
+          <mesh geometry={geo}>
+             <meshPhysicalMaterial color="#d1ebd1" roughness={0.4} transmission={0.15} side={THREE.DoubleSide} />
+          </mesh>
+      </group>
     </group>
   );
 }
 
-// Generates the central flower stalks
-function FlowerStalks() {
-  const [glowIntensity, setGlowIntensity] = useState(0);
+// =========================================================
+//  COMPONENT 3: THE BIG GREEN LEAF (Behind)
+// =========================================================
+function TheBackgroundLeaf() {
+  const stemStart = [0, 0, -0.2]; // Starts further back
+  const stemEnd = [0, 1.6, -0.4]; // Ends further back and high
 
-  // Generate 2 shorter stalks
-  const stalks = useMemo(() => {
-    const stalkSys1 = new LSystem('F', { 'F': 'FF' }, 2); // Reduced iterations to 2
-    const stalk1String = stalkSys1.generate();
-    // Shorter segment length
-    const stalk1Branches = interpretLSystem(stalk1String, 5, 0.2);
-
-    const stalkSys2 = new LSystem('F', { 'F': 'FF' }, 2); // Reduced iterations to 2
-    const stalk2String = stalkSys2.generate();
-    // Shorter segment length
-    const stalk2Branches = interpretLSystem(stalk2String, -4, 0.22);
-
-    return [
-        { branches: stalk1Branches, position: [0.05, 0, -0.05] },
-        { branches: stalk2Branches, position: [-0.05, 0, 0.05] }
-    ];
-  }, []);
-
-  useFrame((state) => {
-    const t = state.clock.getElapsedTime();
-    setGlowIntensity(0.4 + Math.sin(t * 1.2) * 0.2);
-  });
+  // Use soft engine with IMPROVED VEINS
+  const geo = useMemo(() => createSoftOrganicGeo({
+    width: 1.5, height: 2.5, 
+    curvature: { back: 1.2, cup: 0.4 }, 
+    isRibbed: true
+  }), []);
 
   return (
     <group>
-      {stalks.map((stalk, stalkIndex) => (
-        <group key={stalkIndex} position={stalk.position}>
-          {stalk.branches.map((branch, i) => {
-            const direction = new THREE.Vector3().subVectors(branch.end, branch.start);
-            const length = direction.length();
-            const orientation = new THREE.Quaternion();
-            const upVector = new THREE.Vector3(0, 1, 0);
-            if (direction.length() > 0 && !direction.clone().normalize().equals(upVector)) {
-                const axis = new THREE.Vector3().crossVectors(upVector, direction).normalize();
-                const angle = Math.acos(upVector.dot(direction.clone().normalize()));
-                orientation.setFromAxisAngle(axis, angle);
-            }
-            const thickness = 0.02;
-
-            return (
-              <mesh key={i} position={branch.start.clone().lerp(branch.end, 0.5)} quaternion={orientation}>
-                <cylinderGeometry args={[thickness, thickness, length, 6]} />
-                <meshStandardMaterial color="#4a7a3a" roughness={0.6} />
-              </mesh>
-            );
-          })}
-          {/* Add flower at the end of the last branch */}
-          <PeaceLilyFlower
-            position={stalk.branches[stalk.branches.length - 1].end}
-            glowIntensity={glowIntensity}
-          />
-        </group>
-      ))}
+       <OrganicStem start={stemStart} end={stemEnd} control={[0, 0.8, -0.3]} thickness={0.03} />
+       
+       <group position={stemEnd} rotation={[0, 0, 0]}>
+         <mesh geometry={geo}>
+           <meshPhysicalMaterial color="#133d13" roughness={0.6} side={THREE.DoubleSide} />
+         </mesh>
+         
+         {/* --- ADDED PHYSICAL MIDRIB --- */}
+         <mesh position={[0, 1.25, 0.03]} rotation={[0,0,0]}>
+            <cylinderGeometry args={[0.008, 0.012, 2.5, 8]} />
+            <meshStandardMaterial color="#0a2a0a" roughness={0.8} />
+         </mesh>
+       </group>
     </group>
   );
 }
 
-// Main plant with pot
+
+// =========================================================
+//  MAIN COMPOSITION
+// =========================================================
 function PeaceLily() {
   return (
-    <group position={[0, -0.5, 0]} scale={0.8}>
-      {/* Pot */}
-      <mesh position={[0, 0, 0]}>
-        <cylinderGeometry args={[0.45, 0.5, 0.2, 20]} />
-        <meshStandardMaterial color="#3d2d1f" roughness={0.9} />
+    // --- FIX: LOWERED WHOLE STRUCTURE ---
+    // Moved from -1 to -1.6 to lower it on screen
+    <group position={[0, -1.6, 0]}>
+      {/* 1. The "Perfect" Wide Flower on the Left */}
+      <TheOriginalFlower />
+      
+      {/* 2. The Curled Bud on the Right (with seamless spadix) */}
+      <TheCurledBud />
+      
+      {/* 3. The Big Green Leaf Behind them (with veins) */}
+      <TheBackgroundLeaf />
+      
+      {/* --- FIX: REDUCED POT VISIBILITY --- */}
+      {/* Base is now much lower and slightly thinner */}
+      <mesh position={[0, -0.05, 0]}>
+         <cylinderGeometry args={[0.3, 0.2, 0.1, 32]} />
+         <meshStandardMaterial color="#1a0f05" roughness={1} />
       </mesh>
-
-      {/* Assemble the plant from its new parts */}
-      <Leaves />
-      <FlowerStalks />
     </group>
   );
 }
 
-export default PeaceLily;
+export default function PeaceLilyScene() {
+  return (
+    <>
+      <style>{animatedBackgroundStyle}</style>
+      <div className="w-full h-screen green-gradient-bg">
+        <Canvas
+          camera={{ position: [2, 2, 5], fov: 50 }}
+          shadows
+        >
+          <ambientLight intensity={0.6} />
+          <directionalLight position={[5, 5, 5]} intensity={1.2} />
+          <pointLight position={[-3, 2, -3]} intensity={0.5} color="#a8d5a8" />
+          <spotLight
+            position={[0, 4, 0]}
+            angle={0.5}
+            penumbra={1}
+            intensity={1}
+            color="#fff8e7"
+          />
+          <group position-y={-0.5}>
+            <Float speed={1.5} rotationIntensity={0.1} floatIntensity={0.2}>
+                 <PeaceLily />
+            </Float>
+          </group>
+          <Sparkles count={40} scale={10} size={3} speed={0.4} opacity={0.4} color="#60a5fa" />
+          <OrbitControls enableZoom={true} target={[0, 1, 0]} />
+        </Canvas>
+      </div>
+    </>
+  );
+}

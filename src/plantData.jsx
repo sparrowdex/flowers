@@ -1,6 +1,7 @@
 import PeaceLily from './prakriti';
 import OrangeGladiolus from './aarushi';
 import PinkCarnationScene from './simran';
+import BlueOrchid from './kaashvi';
 
 const plantData = {
   'prakriti': {
@@ -61,6 +62,29 @@ const plantData = {
       "A Clove-Scented Secret: Many varieties of pink carnations have a spicy, clove-like fragrance. They were used in the Elizabethan era to spice wine and ale when actual cloves were too expensive.",
       "The Exam Tradition: At Oxford University, students have a tradition of wearing carnations to their exams. They wear pink for all the exams in the middle of their testing period to represent the \"steady journey\" and endurance.",
       "A \"Flesh\" Connection: Some historians believe the name \"carnation\" comes from the Latin carnis (flesh), referring to the soft, skin-toned pink of the original blooms—representing the human, warm touch of a close relationship."
+    ]
+  },
+  'kaashvi': {
+    plantName: 'Blue Orchid',
+    description: [
+      "Your plant identity is the <span className=\"text-white font-bold\">Blue Orchid</span>.",
+      "Like the Blue Orchid, you possess an air of mystery and sophistication, blooming in the most unexpected places with a beauty that captivates and endures.",
+      "Orchids symbolize love, beauty, and strength, much like your own resilient spirit that thrives amidst challenges and emerges more vibrant.",
+      "<span className=\"italic font-bold\">Mysterious. Elegant. Resilient.</span>"
+    ],
+    component: BlueOrchid,
+    hasAudio: true,
+    funFacts: [
+      "Orchids are one of the largest families of flowering plants, with over 25,000 species.",
+      "The Blue Orchid is not naturally occurring; most blue orchids are dyed or genetically modified.",
+      "Orchids have a symbiotic relationship with fungi in the wild, relying on them for nutrients.",
+      "The word 'orchid' comes from the Greek word 'orkhis', meaning testicle, due to the shape of their tubers.",
+      "Orchids can take up to 10 years to bloom from seed.",
+      "They are known for their intricate and diverse flower shapes, often mimicking insects to attract pollinators.",
+      "Orchids symbolize love, luxury, and beauty in many cultures.",
+      "The vanilla flavor comes from the orchid family; vanilla beans are the pods of the Vanilla orchid.",
+      "Some orchids can live for over 100 years.",
+      "Orchids have been cultivated for over 2,000 years, with origins in ancient China and Japan."
     ]
   }
 };

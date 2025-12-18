@@ -1,6 +1,6 @@
 import React, { useRef, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Float } from '@react-three/drei';
+import { OrbitControls, Float, Sparkles } from '@react-three/drei';
 import * as THREE from 'three';
 
 // --- BACKGROUND ---
@@ -301,31 +301,8 @@ function Gladiolus() {
   );
 }
 
-function Particles() {
-  const ref = useRef();
-  const count = 60;
-  const positions = useMemo(() => {
-    const pos = new Float32Array(count * 3);
-    for (let i = 0; i < count * 3; i++) {
-      pos[i] = (Math.random() - 0.5) * 10;
-    }
-    return pos;
-  }, []);
-
-  useFrame((state) => {
-    if (ref.current) {
-      ref.current.rotation.y = state.clock.getElapsedTime() * 0.03;
-    }
-  });
-
-  return (
-    <points ref={ref}>
-      <bufferGeometry>
-        <bufferAttribute attach="attributes-position" count={count} array={positions} itemSize={3} />
-      </bufferGeometry>
-      <pointsMaterial size={0.07} color="#ffddaa" transparent opacity={0.4} sizeAttenuation />
-    </points>
-  );
+function SparklesComponent() {
+  return <Sparkles count={40} scale={10} size={3} speed={0.4} opacity={0.4} color="#ffddaa" />;
 }
 
 export default function OrangeGladiolus() {
