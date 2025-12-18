@@ -1,4 +1,4 @@
-import React, { useRef, useMemo } from 'react';
+import React, { useRef, useMemo, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Sparkles } from '@react-three/drei';
 import * as THREE from 'three';
@@ -274,6 +274,8 @@ function SparklesComponent() {
 }
 
 export default function PinkCarnationScene() {
+  const [isDarkMode, setIsDarkMode] = React.useState(false);
+
   return (
     <>
       <style>{`
@@ -287,13 +289,29 @@ export default function PinkCarnationScene() {
           background-size: 400% 400%;
           animation: green-gradient 30s ease infinite;
         }
+        @keyframes night-gradient {
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+        .night-gradient-bg {
+          background: linear-gradient(-45deg, #020617, #0f172a, #172554);
+          background-size: 400% 400%;
+          animation: night-gradient 30s ease infinite;
+        }
       `}</style>
-      <div className="w-full h-screen pink-gradient-bg">
+      <div className={`w-full h-screen ${isDarkMode ? 'night-gradient-bg' : 'green-gradient-bg'}`}>
+        <button
+          onClick={() => setIsDarkMode(!isDarkMode)}
+          className="absolute top-4 right-4 z-10 bg-white/20 backdrop-blur-sm text-white px-4 py-2 rounded-lg hover:bg-white/30 transition-colors"
+        >
+          {isDarkMode ? 'Light Mode' : 'Dark Mode'}
+        </button>
         <Canvas camera={{ position: [3, 4, 7], fov: 40 }} shadows>
           <ambientLight intensity={0.7} />
           <directionalLight position={[5, 10, 5]} intensity={1.2} castShadow />
           <directionalLight position={[-5, 2, -5]} intensity={0.5} color="#ffd1dc" />
-          
+
           <group position={[0, -1.0, 0]}>
             <PinkCarnation />
           </group>

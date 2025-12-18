@@ -1,4 +1,4 @@
-import React, { useRef, useMemo } from 'react';
+import React, { useRef, useMemo, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Float, Sparkles } from '@react-three/drei';
 import * as THREE from 'three';
@@ -14,6 +14,16 @@ const animatedBackgroundStyle = `
     background: linear-gradient(-45deg, #020617, #0f172a, #172554);
     background-size: 400% 400%;
     animation: night-gradient 30s ease infinite;
+  }
+  @keyframes green-gradient {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+  .green-gradient-bg {
+    background: linear-gradient(-45deg, #0f172a, #166534, #0f172a);
+    background-size: 400% 400%;
+    animation: green-gradient 30s ease infinite;
   }
 `;
 
@@ -322,10 +332,18 @@ function OrchidPlant() {
 }
 
 export default function PerfectBlueOrchid() {
+  const [isDarkMode, setIsDarkMode] = useState(false);
+
   return (
     <>
       <style>{animatedBackgroundStyle}</style>
-      <div className="w-full h-screen night-gradient-bg">
+      <div className={`w-full h-screen ${isDarkMode ? 'night-gradient-bg' : 'green-gradient-bg'}`}>
+        <button
+          onClick={() => setIsDarkMode(!isDarkMode)}
+          className="absolute top-4 right-4 z-10 bg-white/20 backdrop-blur-sm text-white px-4 py-2 rounded-lg hover:bg-white/30 transition-colors"
+        >
+          {isDarkMode ? 'Light Mode' : 'Dark Mode'}
+        </button>
         <Canvas
           camera={{ position: [1, 3, 11], fov: 35 }}
           shadows

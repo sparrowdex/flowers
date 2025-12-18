@@ -1,4 +1,4 @@
-import React, { useRef, useMemo } from 'react';
+import React, { useRef, useMemo, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Float, Sparkles } from '@react-three/drei';
 import * as THREE from 'three';
@@ -14,6 +14,16 @@ const animatedBackgroundStyle = `
     background: linear-gradient(-45deg, #0f172a, #166534, #0f172a);
     background-size: 400% 400%;
     animation: green-gradient 30s ease infinite;
+  }
+  @keyframes night-gradient {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+  .night-gradient-bg {
+    background: linear-gradient(-45deg, #020617, #0f172a, #172554);
+    background-size: 400% 400%;
+    animation: night-gradient 30s ease infinite;
   }
 `;
 
@@ -306,24 +316,49 @@ function SparklesComponent() {
 }
 
 export default function OrangeGladiolus() {
+  const [isDarkMode, setIsDarkMode] = useState(false);
+
   return (
     <>
       <style>{animatedBackgroundStyle}</style>
-      <div className="w-full h-screen green-gradient-bg">
+      <div className={`w-full h-screen ${isDarkMode ? 'night-gradient-bg' : 'green-gradient-bg'}`}>
+        <button
+          onClick={() => setIsDarkMode(!isDarkMode)}
+          className="absolute top-4 right-4 z-10 bg-white/20 backdrop-blur-sm text-white px-4 py-2 rounded-lg hover:bg-white/30 transition-colors"
+        >
+          {isDarkMode ? 'Light Mode' : 'Dark Mode'}
+        </button>
         <Canvas
           // CAMERA ADJUSTMENT: Closer Z (10), higher Y (4) to look down slightly
           camera={{ position: [0, 4, 10], fov: 35 }}
           shadows
         >
-          <ambientLight intensity={0.6} />
-          <directionalLight 
-            position={[5, 8, 5]} 
-            intensity={1.2} 
-            castShadow 
+          <ambientLight intensity={isDarkMode ? 0.8 : 0.6} />
+          <directionalLight
+            position={[5, 8, 5]}
+            intensity={isDarkMode ? 1.5 : 1.2}
+            castShadow
             color="#fff0dd"
           />
-          <directionalLight position={[-5, 5, 2]} intensity={0.5} color="#ffdcb3" />
-          <pointLight position={[0, 2, 4]} intensity={0.3} color="#ffeebb" />
+          <directionalLight position={[-5, 5, 2]} intensity={isDarkMode ? 0.8 : 0.5} color="#ffdcb3" />
+          <pointLight position={[0, 2, 4]} intensity={isDarkMode ? 0.5 : 0.3} color="#ffeebb" />
+          {isDarkMode && (
+            <>
+              <spotLight
+                position={[10, 8, 5]}
+                angle={0.3}
+                penumbra={0.5}
+                intensity={2}
+                castShadow
+                color="#ffffff"
+              />
+              <spotLight
+                position={[-5, 5, -5]}
+                intensity={3}
+                color="#ffaa88"
+              />
+            </>
+          )}
           
           {/* POSITION ADJUSTMENT: Raised to prevent top from being cut off */}
           <group position-y={-1.5}>
@@ -331,8 +366,8 @@ export default function OrangeGladiolus() {
                  <Gladiolus />
             </Float>
           </group>
-          
-          <Particles />
+
+          <Sparkles count={40} scale={10} size={3} speed={0.4} opacity={0.4} color="#60a5fa" />
           {/* TARGET ADJUSTMENT: Look at the middle-top of the flower spike */}
           <OrbitControls enableZoom={true} target={[0, 1, 0]} />
         </Canvas>
