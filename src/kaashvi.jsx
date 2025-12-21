@@ -331,13 +331,19 @@ function OrchidPlant() {
   );
 }
 
-export default function PerfectBlueOrchid() {
+export default function PerfectBlueOrchid({ onBack }) {
   const [isDarkMode, setIsDarkMode] = useState(false);
 
   return (
     <>
       <style>{animatedBackgroundStyle}</style>
       <div className={`w-full h-screen ${isDarkMode ? 'night-gradient-bg' : 'green-gradient-bg'}`}>
+        <button
+          onClick={onBack}
+          className="absolute top-4 left-4 z-10 bg-white/20 backdrop-blur-sm text-white px-3 py-2 rounded-lg hover:bg-white/30 transition-colors flex items-center gap-2"
+        >
+          ← Back
+        </button>
         <button
           onClick={() => setIsDarkMode(!isDarkMode)}
           className="absolute top-4 right-4 z-10 bg-white/20 backdrop-blur-sm text-white px-4 py-2 rounded-lg hover:bg-white/30 transition-colors"
@@ -376,7 +382,7 @@ export default function PerfectBlueOrchid() {
             </Float>
           </group>
           
-          <Sparkles count={40} scale={10} size={3} speed={0.4} opacity={0.4} color="#60a5fa" />
+          <Sparkles count={60} scale={10} size={6} speed={0.4} opacity={0.6} color="#60a5fa" />
           
           <OrbitControls enableZoom={true} target={[0, 2, 0]} maxPolarAngle={Math.PI - 0.2} />
         </Canvas>

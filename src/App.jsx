@@ -102,7 +102,7 @@ export default function App() {
       {stage === 'animation' && currentPlant && (
         <div className="relative w-full h-full">
           {showBirthdayMessage && <BirthdayMessage />}
-          <PlantComponent />
+          <PlantComponent onBack={() => setStage('input')} />
           <FunFacts facts={currentPlant.funFacts} />
           <div className="absolute top-8 left-1/2 transform -translate-x-1/2 text-center">
             <h3 className="text-3xl font-light text-white mb-2">Your {currentPlant.plantName}</h3>

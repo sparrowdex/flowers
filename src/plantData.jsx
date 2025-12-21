@@ -2,6 +2,8 @@ import PeaceLily from './prakriti';
 import OrangeGladiolus from './aarushi';
 import PinkCarnationScene from './simran';
 import BlueOrchid from './kaashvi';
+import SweetPeaApp from './mahi';
+import LotusScene from './jaisu';
 
 const plantData = {
   'prakriti': {
@@ -85,6 +87,52 @@ const plantData = {
       "The vanilla flavor comes from the orchid family; vanilla beans are the pods of the Vanilla orchid.",
       "Some orchids can live for over 100 years.",
       "Orchids have been cultivated for over 2,000 years, with origins in ancient China and Japan."
+    ]
+  },
+  'mahi': {
+    plantName: 'Sweet Pea',
+    description: [
+      "Your plant identity is the <span className=\"text-white font-bold\">Sweet Pea</span>.",
+      "Like the Sweet Pea, you bring joy and delight wherever you go, with your charming personality and ability to make others feel special.",
+      "Sweet Peas symbolize blissful pleasure and gratitude, reflecting your kind heart and the happiness you spread to those around you.",
+      "<span className=\"italic font-bold\">Charming. Joyful. Grateful.</span>"
+    ],
+    component: SweetPeaApp,
+    hasAudio: true,
+    funFacts: [
+      "Sweet peas are native to the Mediterranean region and were first cultivated in the 17th century.",
+      "The name 'sweet pea' comes from the sweet scent of the flowers, which can be detected from several feet away.",
+      "Sweet peas have been hybridized to produce over 1,000 different varieties in various colors.",
+      "They are annual climbers that can grow up to 6-8 feet tall with proper support.",
+      "Sweet peas are often used in floral arrangements and have been a favorite in gardens since Victorian times.",
+      "The flowers are edible and can be used to decorate cakes and salads.",
+      "Sweet peas are legumes and can fix nitrogen in the soil, benefiting other plants.",
+      "They bloom from late spring through summer, producing clusters of fragrant flowers.",
+      "Sweet peas symbolize departure and blissful pleasure in the language of flowers.",
+      "The plant has tendrils that help it climb and attach to supports."
+    ]
+  },
+  'jaisu': {
+    plantName: 'Lotus',
+    description: [
+      "Your plant identity is the <span className=\"text-white font-bold\">Lotus</span>.",
+      "Like the Lotus, you rise above challenges with grace and purity, blooming beautifully even in muddy waters.",
+      "The Lotus symbolizes enlightenment, rebirth, and spiritual awakening, reflecting your inner strength and serene nature.",
+      "<span className=\"italic font-bold\">Graceful. Resilient. Enlightened.</span>"
+    ],
+    component: LotusScene,
+    hasAudio: true,
+    funFacts: [
+      "Lotus flowers can bloom in muddy water, symbolizing purity and enlightenment.",
+      "They are native to Asia and have been cultivated for over 2,000 years.",
+      "Lotus seeds can remain viable for up to 1,300 years.",
+      "The flowers open in the morning and close at night.",
+      "Lotus plants have large, floating leaves that can be up to 3 feet in diameter.",
+      "They are considered sacred in many cultures, including Hinduism and Buddhism.",
+      "Lotus roots are edible and commonly used in Asian cuisine.",
+      "The plant can grow in water up to 6 feet deep.",
+      "Lotus flowers come in various colors, including pink, white, and blue.",
+      "They have a unique ability to self-clean their leaves with water droplets."
     ]
   }
 };

@@ -1,3 +1,4 @@
+
 import React, { useRef, useMemo, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Float, Sparkles } from '@react-three/drei';
@@ -27,14 +28,16 @@ const animatedBackgroundStyle = `
   }
 `;
 
-// --- PETAL GEOMETRY (With Tip Bend) ---
+// --- NEW RUFFLED PETAL GEOMETRY (From Wireframe Design) ---
 function Petal({ width = 1, length = 1, colorVariation = 0, bend = 0.5 }) {
   const { geometry, material } = useMemo(() => {
     const shape = new THREE.Shape();
     
+    // Wider, Fan-like shape for the "Full Flower" look
     shape.moveTo(0, 0); 
-    shape.bezierCurveTo(width * 0.4, length * 0.2, width * 1.1, length * 0.6, 0, length); 
-    shape.bezierCurveTo(-width * 1.1, length * 0.6, -width * 0.4, length * 0.2, 0, 0); 
+    // Much wider curve to ensure overlap and volume
+    shape.bezierCurveTo(width * 0.5, length * 0.2, width * 1.5, length * 0.6, 0, length); 
+    shape.bezierCurveTo(-width * 1.5, length * 0.6, -width * 0.5, length * 0.2, 0, 0); 
 
     const extrudeSettings = {
       depth: 0.005, 
@@ -42,21 +45,33 @@ function Petal({ width = 1, length = 1, colorVariation = 0, bend = 0.5 }) {
       bevelThickness: 0.002,
       bevelSize: 0.01,
       bevelSegments: 3,
-      curveSegments: 16
+      curveSegments: 32 // High res for smooth ruffles
     };
 
     const geo = new THREE.ExtrudeGeometry(shape, extrudeSettings);
     geo.translate(0, 0, 0);
 
-    // --- VERTEX MANIPULATION FOR BENDING ---
+    // --- VERTEX MANIPULATION: RUFFLES & BEND ---
     const pos = geo.attributes.position;
     const v3 = new THREE.Vector3();
+    
     for (let i = 0; i < pos.count; i++) {
         v3.fromBufferAttribute(pos, i);
+        
+        // Ratio: 0 at base, 1 at tip
         const ratio = Math.max(0, v3.y / length);
-        const curl = Math.pow(ratio, 2.5) * bend; 
-        pos.setZ(i, v3.z - curl);
-        pos.setY(i, v3.y - (curl * 0.3)); 
+        
+        // 1. BACKWARD CURL (Trumpet shape)
+        const curve = Math.pow(ratio, 2.2) * bend; 
+        
+        // 2. RUFFLES (Sine wave along the X-axis)
+        // Amplitude increases towards the tip
+        const ruffle = Math.sin(v3.x * 8) * 0.08 * ratio;
+
+        // Apply transformations
+        pos.setZ(i, v3.z - curve + ruffle);
+        // Compress Y slightly to account for curl
+        pos.setY(i, v3.y - (curve * 0.3)); 
     }
     geo.computeVertexNormals();
 
@@ -74,12 +89,13 @@ function Petal({ width = 1, length = 1, colorVariation = 0, bend = 0.5 }) {
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, 256, 256);
     
-    ctx.strokeStyle = 'rgba(120, 20, 0, 0.3)';
+    // Soft Veins
+    ctx.strokeStyle = 'rgba(120, 20, 0, 0.2)';
     ctx.lineWidth = 1;
-    for(let i=0; i<10; i++) {
+    for(let i=0; i<12; i++) {
         ctx.beginPath();
         ctx.moveTo(128, 0);
-        ctx.quadraticCurveTo(128 + (i-5)*40, 128, 128 + (i-5)*15, 256);
+        ctx.quadraticCurveTo(128 + (i-6)*40, 128, 128 + (i-6)*15, 256);
         ctx.stroke();
     }
 
@@ -133,9 +149,9 @@ function StamenCluster({ isOpen }) {
     );
 }
 
+// --- RUFFLED FLORET STRUCTURE ---
 function Floret({ scale, openness, hueVariation }) {
   if (openness < 0.1) {
-    // Bud
     return (
         <group scale={scale} rotation={[Math.PI/2, 0, 0]}>
              <mesh position={[0, 0.2, 0]}>
@@ -160,17 +176,21 @@ function Floret({ scale, openness, hueVariation }) {
 
       {/* FLOWER HEAD */}
       <group rotation={[-0.2, 0, 0]}>
-          {/* Stamens */}
           <group position={[0, 0, 0]}>
              <StamenCluster isOpen={openness} />
           </group>
 
-          {/* Petals */}
+          {/* Petals - Wider and Ruffled */}
           {[0, 1, 2].map((i) => (
             <group key={`inner-${i}`} rotation={[0, 0, (i / 3) * Math.PI * 2]}>
                 <group rotation={[Math.PI/2 - (0.2 + 0.3 * openness), 0, 0]}> 
                    <group position={[0, 0.05, 0]}>
-                      <Petal width={0.4} length={0.8} colorVariation={hueVariation} bend={0.3 * openness} />
+                      <Petal 
+                        width={0.45} // Wider
+                        length={0.85} 
+                        colorVariation={hueVariation} 
+                        bend={0.3 * openness} 
+                      />
                    </group>
                 </group>
             </group>
@@ -180,7 +200,12 @@ function Floret({ scale, openness, hueVariation }) {
              <group key={`outer-${i}`} rotation={[0, 0, ((i / 3) * Math.PI * 2) + Math.PI/3]}>
                 <group rotation={[Math.PI/2 - (0.3 + 0.4 * openness), 0, 0]}>
                    <group position={[0, 0.05, 0.01]}>
-                      <Petal width={0.5} length={0.9} colorVariation={hueVariation} bend={0.4 * openness} />
+                      <Petal 
+                        width={0.55} // Wider
+                        length={0.95} 
+                        colorVariation={hueVariation} 
+                        bend={0.4 * openness} 
+                      />
                    </group>
                 </group>
              </group>
@@ -192,10 +217,9 @@ function Floret({ scale, openness, hueVariation }) {
 
 function Stem() {
   const curve = useMemo(() => new THREE.CatmullRomCurve3([
-    new THREE.Vector3(0, -3.0, 0), // Started lower for leaves
+    new THREE.Vector3(0, -3.0, 0),
     new THREE.Vector3(0, 0, 0),
     new THREE.Vector3(0.05, 2.5, 0.05),
-    // FIX: Shortened the top of the stem significantly (was 5.0)
     new THREE.Vector3(-0.02, 4.2, -0.02) 
   ]), []);
 
@@ -210,11 +234,10 @@ function Stem() {
   );
 }
 
-// --- IMPROVED LEAF COMPONENT (Softer, curved shape) ---
+// --- LEAF COMPONENT ---
 function Leaf({ length, width, angle, rotation, yPos }) {
   const shape = useMemo(() => {
     const s = new THREE.Shape();
-    // Sword shape with gentle curves
     s.moveTo(0, 0);
     s.bezierCurveTo(width * 0.2, length * 0.3, width * 0.5, length * 0.7, 0, length);
     s.bezierCurveTo(-width * 0.5, length * 0.7, -width * 0.2, length * 0.3, 0, 0);
@@ -222,7 +245,6 @@ function Leaf({ length, width, angle, rotation, yPos }) {
   }, [length, width]);
 
   const geometry = useMemo(() => {
-      // Added bevel for softer edges
       const geo = new THREE.ExtrudeGeometry(shape, { 
         depth: 0.03, 
         bevelEnabled: true,
@@ -238,7 +260,6 @@ function Leaf({ length, width, angle, rotation, yPos }) {
         <mesh 
             geometry={geometry} 
             rotation={[angle, 0, 0]} 
-            // Pushed further out to avoid clipping stem
             position={[0, 0, 0.07]} 
         >
             <meshStandardMaterial color="#4a6e3a" roughness={0.5} side={THREE.DoubleSide} />
@@ -256,11 +277,12 @@ function Gladiolus() {
     }
   });
 
-  // --- LEAF DATA (Lower positions to avoid clipping flowers) ---
+  // --- LEAF DATA ---
+  // Lowered positions to prevent clipping through flowers
   const leaves = useMemo(() => [
-    { length: 3.5, width: 0.4, angle: 0.4, rotation: 0.2, yPos: -2.8 },
-    { length: 3.0, width: 0.35, angle: 0.35, rotation: Math.PI + 0.4, yPos: -2.2 },
-    { length: 2.5, width: 0.3, angle: 0.4, rotation: -0.8, yPos: -1.5 },
+    { length: 3.5, width: 0.4, angle: 0.4, rotation: 0.2, yPos: -3.0 }, // Lowered
+    { length: 3.0, width: 0.35, angle: 0.35, rotation: Math.PI + 0.4, yPos: -2.4 }, // Lowered
+    { length: 2.5, width: 0.3, angle: 0.4, rotation: -0.8, yPos: -1.8 }, // Lowered
   ], []);
   
   const floretPositions = useMemo(() => {
@@ -282,7 +304,6 @@ function Gladiolus() {
   }, []);
 
   return (
-    // Base position of the whole spike
     <group ref={groupRef} position={[0, 0, 0]}>
       <Stem />
       
@@ -311,11 +332,7 @@ function Gladiolus() {
   );
 }
 
-function SparklesComponent() {
-  return <Sparkles count={40} scale={10} size={3} speed={0.4} opacity={0.4} color="#ffddaa" />;
-}
-
-export default function OrangeGladiolus() {
+export default function OrangeGladiolus({ onBack }) {
   const [isDarkMode, setIsDarkMode] = useState(false);
 
   return (
@@ -323,13 +340,18 @@ export default function OrangeGladiolus() {
       <style>{animatedBackgroundStyle}</style>
       <div className={`w-full h-screen ${isDarkMode ? 'night-gradient-bg' : 'green-gradient-bg'}`}>
         <button
+          onClick={onBack}
+          className="absolute top-4 left-4 z-10 bg-white/20 backdrop-blur-sm text-white px-3 py-2 rounded-lg hover:bg-white/30 transition-colors flex items-center gap-2"
+        >
+          ← Back
+        </button>
+        <button
           onClick={() => setIsDarkMode(!isDarkMode)}
           className="absolute top-4 right-4 z-10 bg-white/20 backdrop-blur-sm text-white px-4 py-2 rounded-lg hover:bg-white/30 transition-colors"
         >
           {isDarkMode ? 'Light Mode' : 'Dark Mode'}
         </button>
         <Canvas
-          // CAMERA ADJUSTMENT: Closer Z (10), higher Y (4) to look down slightly
           camera={{ position: [0, 4, 10], fov: 35 }}
           shadows
         >
@@ -360,15 +382,14 @@ export default function OrangeGladiolus() {
             </>
           )}
           
-          {/* POSITION ADJUSTMENT: Raised to prevent top from being cut off */}
-          <group position-y={-1.5}>
+          {/* POSITION ADJUSTMENT: Lowered to -3 to center the tall spike on screen */}
+          <group position-y={-1}>
             <Float speed={1.5} rotationIntensity={0.1} floatIntensity={0.2}>
                  <Gladiolus />
             </Float>
           </group>
 
-          <Sparkles count={40} scale={10} size={3} speed={0.4} opacity={0.4} color="#60a5fa" />
-          {/* TARGET ADJUSTMENT: Look at the middle-top of the flower spike */}
+          <Sparkles count={60} scale={10} size={6} speed={0.4} opacity={0.6} color="#60a5fa" />
           <OrbitControls enableZoom={true} target={[0, 1, 0]} />
         </Canvas>
       </div>
