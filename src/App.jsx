@@ -14,7 +14,17 @@ export default function App() {
 
 
   const handleSubmit = () => {
-    const plant = plantData[name.trim().toLowerCase()];
+    const userInput = name.trim().toLowerCase();
+    let plant = plantData[userInput];
+
+    // If not found by name, search by plant name
+    if (!plant) {
+      const plantKey = Object.keys(plantData).find(key => plantData[key].plantName.toLowerCase() === userInput);
+      if (plantKey) {
+        plant = plantData[plantKey];
+      }
+    }
+
     if (plant) {
       setCurrentPlant(plant);
       if (plant.hasAudio && audioRef.current) {
