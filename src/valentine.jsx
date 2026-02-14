@@ -228,7 +228,7 @@ function ResponsiveCamera() {
   useEffect(() => {
     const isMobile = size.width < 600;
     if (isMobileRef.current !== isMobile) {
-        camera.position.z = isMobile ? 19 : 12; 
+        camera.position.z = isMobile ? 28 : 18; 
         camera.position.y = 2; 
         camera.lookAt(0, 1.2, 0); 
         camera.updateProjectionMatrix();
@@ -318,7 +318,7 @@ export default function VelvetRoseScene({ onBack }) {
       )}
       
       <Canvas shadows dpr={[1, 2]}>
-        <PerspectiveCamera makeDefault fov={45} />
+        <PerspectiveCamera makeDefault fov={45} position={[0, 2, 20]} />
         <ResponsiveCamera />
         <ambientLight intensity={0.5} />
         <spotLight position={[10, 10, 10]} intensity={2} color="#ffc0cb" penumbra={1} />
