@@ -14,6 +14,7 @@ One of the flowers is for my friend, Prakriti, whose name means "nature" in Sans
 
 *   **Personalized Plant Identities:** Each person has a unique, procedurally generated 3D plant that represents their personality.
 *   **Interactive 3D Scenes:** Built with React Three Fiber, the 3D scenes are not static models but are generated from scratch using mathematical functions, creating a truly unique and artistic experience.
+*   **Interactive Valentine's Experience:** A special "Heart Bloom" scene that responds to microphone input (blowing) and allows users to leave persistent 3D messages on floating hearts.
 *   **Immersive Atmosphere:** Soft background music and a gentle, unfolding animation create a calm and immersive experience.
 *   **Heartfelt Messages:** Each plant is accompanied by a personalized birthday message and a set of "fun facts."
 *   **Modern Web Experience:** A sleek, responsive, and modern web application built with the latest technologies.
@@ -71,5 +72,6 @@ Once the application is running, you can enter one of the following names to see
 *   **kaashvi** (Blue Orchid)
 *   **mahi** (Sweet Pea)
 *   **jaisu** (Lotus)
+*   **valentine** (The Heart Bloom)
 
 You can also enter the name of the flower directly.
