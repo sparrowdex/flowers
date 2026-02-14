@@ -268,14 +268,15 @@ function FloatingJellyHearts({ count = 35 }) {
   useFrame(() => { if (groupRef.current) groupRef.current.rotation.y += 0.001; });
 
   const handleSave = (i, cancel = false) => {
-    const updated = { ...savedMessages };
-    if (!cancel && inputValue.trim()) {
-      updated[i] = inputValue;
-    } else if (!cancel) {
-      delete updated[i];
+    if (!cancel) {
+      // Update only the specific heart index in Firebase to prevent overwriting others
+      const heartRef = ref(db, `heart_messages/${i}`);
+      if (inputValue.trim()) {
+        set(heartRef, inputValue);
+      } else {
+        set(heartRef, null); // Deletes the message if input is empty
+      }
     }
-    setSavedMessages(updated);
-    if (!cancel) set(ref(db, 'heart_messages'), updated);
     setEditingIndex(null);
     setInputValue("");
   };
