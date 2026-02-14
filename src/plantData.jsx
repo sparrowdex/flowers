@@ -131,7 +131,7 @@ const plantData = {
   'valentine': {
     plantName: 'The Heart Bloom',
     description: [
-      "A special creation for <span className=\"text-pink-400 font-bold\">Valentine's Day</span>.",
+      "A special creation grown from <span className=\"text-pink-400 font-bold\">shared moments</span>.",
       "This flower doesn't grow in soil; it blooms from the <b>warmth of shared moments</b> and the kindness you show every day.",
       "<span className=\"italic font-bold\">Soft. Glowing. Made entirely of love.</span>"
     ],
@@ -141,8 +141,7 @@ const plantData = {
       "I'm so lucky to have you in my life.",
       "You make every day feel like February 14th.",
       "Your heart is the most beautiful thing I've ever seen.",
-      "Thank you for being exactly who you are.",
-      "Happy Valentine's Day! ❤️"
+      "Thank you for being exactly who you are."
     ]
   }
 };

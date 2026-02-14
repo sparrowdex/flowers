@@ -52,12 +52,8 @@ export default function App() {
       {stage === 'input' && (
         <div className="flex items-center justify-center h-full">
           <div className="text-center space-y-8 p-8">
-            <h1 className="text-5xl font-light text-white mb-4">
-              {isValentine ? "Discover Your Heart Bloom" : "Discover Your Plant Identity"}
-            </h1>
-            <p className="text-xl text-pink-200 mb-8">
-              {isValentine ? "A special Valentine gift awaits..." : "A special birthday gift awaits..."}
-            </p>
+            <h1 className="text-5xl font-light text-white mb-4">Discover Your Plant Identity</h1>
+            <p className="text-xl text-pink-200 mb-8">A special gift awaits...</p>
             <div className="space-y-4 flex flex-col items-center">
               <input
                 type="text"
@@ -81,9 +77,7 @@ export default function App() {
       {stage === 'message' && currentPlant && (
         <div className={`flex items-center justify-center h-full transition-opacity duration-1000 ${fadeIn ? 'opacity-100' : 'opacity-0'}`}>
           <div className="max-w-2xl p-12 bg-white/5 backdrop-blur-md rounded-2xl border border-white/20 shadow-2xl">
-            <h2 className="text-4xl font-light text-white mb-6 text-center">
-              {isValentine ? `For You, ${name} ❤️` : `Happy Birthday, ${name}! 🌸`}
-            </h2>
+            <h2 className="text-4xl font-light text-white mb-6 text-center">For You, {name} ✨</h2>
             <div className="space-y-4 text-white text-lg leading-relaxed mb-8">
               {currentPlant.description.map((text, index) => (
                 <p key={index} dangerouslySetInnerHTML={{ __html: text }} />
