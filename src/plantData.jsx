@@ -122,27 +122,12 @@ const plantData = {
       "Lotus flowers symbolize purity and enlightenment.",
       "Lotus seeds can remain viable for up to 1,300 years.",
       "The flowers open in the morning and close at night.",
-      "Lotus plants have floating leaves up to 3 feet in diameter.",
-      "They are considered sacred in Hinduism and Buddhism.",
-      "Lotus roots are edible and used in Asian cuisine.",
-      "They have a unique ability to self-clean their leaves."
-    ]
+      "Lotus plants have floating leaves up to 3 feet in.", ]
   },
   'valentine': {
     plantName: 'The Heart Bloom',
-    description: [
-      "A special creation grown from <span className=\"text-pink-400 font-bold\">shared moments</span>.",
-      "This flower doesn't grow in soil; it blooms from the <b>warmth of shared moments</b> and the kindness you show every day.",
-      "<span className=\"italic font-bold\">Soft. Glowing. Made entirely of love.</span>"
-    ],
     component: ValentineScene,
     hasAudio: true,
-    funFacts: [
-      "I'm so lucky to have you in my life.",
-      "You make every day feel like February 14th.",
-      "Your heart is the most beautiful thing I've ever seen.",
-      "Thank you for being exactly who you are."
-    ]
   }
 };
 

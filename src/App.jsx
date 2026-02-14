@@ -29,13 +29,16 @@ export default function App() {
       if (plant.hasAudio && audioRef.current) {
         audioRef.current.play().catch(err => console.error(err));
       }
-      setStage('message');
-      setTimeout(() => setFadeIn(true), 100);
+      if (userInput === 'valentine' || plant.plantName === 'The Heart Bloom') {
+        setStage('animation');
+      } else {
+        setStage('message');
+        setTimeout(() => setFadeIn(true), 100);
+      }
     }
   };
 
   const handleKeyPress = (e) => { if (e.key === 'Enter') handleSubmit(); };
-  const showAnimation = () => setStage('animation');
 
   const PlantComponent = currentPlant ? currentPlant.component : null;
 
@@ -79,12 +82,12 @@ export default function App() {
           <div className="max-w-2xl p-12 bg-white/5 backdrop-blur-md rounded-2xl border border-white/20 shadow-2xl">
             <h2 className="text-4xl font-light text-white mb-6 text-center">For You, {name} ✨</h2>
             <div className="space-y-4 text-white text-lg leading-relaxed mb-8">
-              {currentPlant.description.map((text, index) => (
+              {currentPlant.description?.map((text, index) => (
                 <p key={index} dangerouslySetInnerHTML={{ __html: text }} />
               ))}
             </div>
             <button
-              onClick={showAnimation}
+              onClick={() => setStage('animation')}
               className={`w-full px-8 py-4 text-xl text-white rounded-lg transition-all duration-300 shadow-lg ${isValentine ? 'bg-gradient-to-r from-pink-600 to-rose-600' : 'bg-gradient-to-r from-green-600 to-emerald-600'}`}
             >
               See It Bloom ✨
@@ -97,7 +100,7 @@ export default function App() {
         <div className="relative w-full h-full">
           {!isValentine && showBirthdayMessage && <BirthdayMessage />}
           <PlantComponent onBack={() => setStage('input')} />
-          <FunFacts facts={currentPlant.funFacts} />
+          {!isValentine && currentPlant.funFacts && <FunFacts facts={currentPlant.funFacts} />}
           <div className="absolute top-20 left-1/2 transform -translate-x-1/2 text-center">
             <h3 className="text-3xl font-light text-white mb-2">{currentPlant.plantName}</h3>
           </div>

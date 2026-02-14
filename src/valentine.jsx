@@ -1,6 +1,6 @@
 import React, { useMemo, useRef, useState, useEffect } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { OrbitControls, Sparkles, Float, Environment, PerspectiveCamera, Text } from '@react-three/drei';
+import { OrbitControls, Sparkles, Float, Environment, PerspectiveCamera, Text, Html } from '@react-three/drei';
 import * as THREE from 'three';
 
 // --- SHARED CONFIGURATION ---
@@ -54,7 +54,7 @@ function SoulHeartSystem({ isOpen }) {
 
   return (
     <group ref={groupRef}>
-      <mesh rotation={[0, 0, Math.PI]}> 
+      <mesh rotation={[0, 0, 0]}> 
         <extrudeGeometry args={[heartShape, { depth: 0.15, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.05 }]} />
         <meshPhysicalMaterial 
             color={CONFIG.mainColor} 
@@ -179,38 +179,174 @@ function HeartBloomFlower({ openProgress }) {
 }
 
 // --- 6. BACKGROUND ---
+function AnimatedHeart({ h, onClick, isHidden }) {
+  const meshRef = useRef();
+  useFrame(() => {
+    if (meshRef.current) {
+      const targetScale = isHidden ? 0 : h.scale;
+      meshRef.current.scale.setScalar(THREE.MathUtils.lerp(meshRef.current.scale.x, targetScale, 0.15));
+    }
+  });
+
+  return (
+    <mesh 
+      ref={meshRef}
+      rotation={h.rotation} 
+      scale={h.scale}
+      onClick={onClick}
+    >
+      <extrudeGeometry args={[heartShape, { depth: 0.2, bevelEnabled: true, bevelThickness: 0.1, bevelSize: 0.1 }]} />
+      <meshPhysicalMaterial color={CONFIG.mainColor} transmission={0.8} roughness={0} thickness={2} />
+    </mesh>
+  );
+}
+
+function AnimatedText({ text, onClick }) {
+  const textRef = useRef();
+  useFrame(() => {
+    if (textRef.current) {
+      textRef.current.scale.setScalar(THREE.MathUtils.lerp(textRef.current.scale.x, 1, 0.15));
+    }
+  });
+
+  return (
+    <Text 
+      ref={textRef}
+      scale={0}
+      fontSize={0.3} 
+      color="white" 
+      anchorX="center" 
+      anchorY="middle"
+      onClick={onClick}
+    >
+      {text}
+    </Text>
+  );
+}
+
 function FloatingJellyHearts({ count = 35 }) {
   const groupRef = useRef();
   const [burstHearts, setBurstHearts] = useState({});
+  const [editingIndex, setEditingIndex] = useState(null);
+  const [inputValue, setInputValue] = useState("");
+
+  
+  // Load saved "friend messages" from localStorage
+  const [savedMessages, setSavedMessages] = useState(() => {
+    const saved = localStorage.getItem('valentine_heart_messages');
+    return saved ? JSON.parse(saved) : {};
+  });
+
   const messages = ["You are loved", "Stay sweet", "Bloom bright", "Magic is real", "Keep shining", "Heart of gold"];
 
-  const hearts = useMemo(() => Array.from({ length: count }).map(() => ({
-      pos: new THREE.Vector3((Math.random()-0.5)*14, (Math.random()-0.5)*12, (Math.random()-0.5)*8),
-      scale: Math.random() * 0.15 + 0.1,
-      speed: Math.random() * 0.5 + 0.2,
-      rotation: [Math.random()*Math.PI, Math.random()*Math.PI, 0],
-      msg: messages[Math.floor(Math.random() * messages.length)]
-  })), [count]);
+  const hearts = useMemo(() => {
+    // Seeded random ensures heart positions stay consistent across refreshes
+    // so that saved messages stay attached to the same physical heart.
+    let seed = 42; 
+    const seededRandom = () => {
+      const x = Math.sin(seed++) * 10000;
+      return x - Math.floor(x);
+    };
+
+    return Array.from({ length: count }).map(() => ({
+      pos: new THREE.Vector3((seededRandom() - 0.5) * 14, (seededRandom() - 0.5) * 12, (seededRandom() - 0.5) * 8),
+      scale: seededRandom() * 0.15 + 0.1,
+      speed: seededRandom() * 0.5 + 0.2,
+      rotation: [seededRandom() * Math.PI, seededRandom() * Math.PI, 0],
+      msg: messages[Math.floor(seededRandom() * messages.length)]
+    }));
+  }, [count]);
 
   useFrame(() => { if (groupRef.current) groupRef.current.rotation.y += 0.001; });
+
+  const handleSave = (i) => {
+    const updated = { ...savedMessages };
+    if (inputValue.trim()) {
+      updated[i] = inputValue;
+    } else {
+      delete updated[i];
+    }
+    setSavedMessages(updated);
+    localStorage.setItem('valentine_heart_messages', JSON.stringify(updated));
+    setEditingIndex(null);
+    setInputValue("");
+  };
+
+  const handleToggle = (e, i) => {
+    e.stopPropagation();
+    
+    // Shift + Click to re-edit an existing message
+    if (e.shiftKey && editingIndex === null) {
+      setEditingIndex(i);
+      setInputValue(savedMessages[i] || "");
+      setBurstHearts(prev => ({ ...prev, [i]: false }));
+      return;
+    }
+
+    // If it's a heart and has no saved message, start 3D editing
+    if (!burstHearts[i] && !savedMessages[i] && editingIndex === null) {
+      setEditingIndex(i);
+      setInputValue("");
+      return;
+    }
+    setBurstHearts(prev => ({ ...prev, [i]: !prev[i] }));
+  };
 
   return (
     <group ref={groupRef}>
       {hearts.map((h, i) => {
         const isBurst = burstHearts[i];
+        const isEditing = editingIndex === i;
+        const displayMsg = savedMessages[i] || h.msg;
+
         return (
           <Float key={i} speed={h.speed} rotationIntensity={1} floatIntensity={1}>
             <group position={h.pos}>
-              {!isBurst ? (
-                <mesh 
-                  rotation={h.rotation} scale={h.scale}
-                  onClick={(e) => { e.stopPropagation(); setBurstHearts(prev => ({ ...prev, [i]: true })); }}
-                >
-                  <extrudeGeometry args={[heartShape, { depth: 0.2, bevelEnabled: true, bevelThickness: 0.1, bevelSize: 0.1 }]} />
-                  <meshPhysicalMaterial color={CONFIG.mainColor} transmission={0.8} roughness={0} thickness={2} />
-                </mesh>
-              ) : (
-                <Text fontSize={0.3} color="white" anchorX="center" anchorY="middle">{h.msg}</Text>
+              <AnimatedHeart 
+                h={h} 
+                onClick={(e) => handleToggle(e, i)} 
+                isHidden={isBurst || isEditing} 
+              />
+
+              {isBurst && !isEditing && (
+                <AnimatedText 
+                  text={displayMsg} 
+                  onClick={(e) => handleToggle(e, i)} 
+                />
+              )}
+
+              {isEditing && (
+                <group>
+                  {/* 3D Text being typed */}
+                  <Text fontSize={0.4} color="white" anchorX="center" anchorY="middle">
+                    {inputValue || "|"}
+                  </Text>
+                  {/* Transparent underline */}
+                  <mesh position={[0, -0.3, 0]}>
+                    <planeGeometry args={[2, 0.02]} />
+                    <meshBasicMaterial color="white" transparent opacity={0.4} />
+                  </mesh>
+                  {/* Hidden input to capture keyboard events */}
+                  <Html position={[0, 0, 0]}>
+                    <input
+                      autoFocus
+                      style={{ 
+                        opacity: 0, 
+                        position: 'absolute', 
+                        pointerEvents: 'none',
+                        width: '1px',
+                        height: '1px'
+                      }}
+                      value={inputValue}
+                      onChange={(e) => setInputValue(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleSave(i);
+                        if (e.key === 'Escape') setEditingIndex(null);
+                      }}
+                      onBlur={() => handleSave(i)}
+                    />
+                  </Html>
+                </group>
               )}
             </group>
           </Float>
@@ -291,8 +427,15 @@ export default function VelvetRoseScene({ onBack }) {
   }, [micEnabled, isManuallyToggled]);
 
   return (
-    <div className="w-full h-screen relative" style={{ background: 'radial-gradient(circle, #1a000d 0%, #000 100%)' }}>
+    <div className="w-full h-screen relative" style={{ background: 'radial-gradient(circle, #5c001e 0%, #1a000d 50%, #000 100%)' }}>
       <button onClick={onBack} className="absolute top-4 left-4 z-10 bg-white/20 backdrop-blur-sm text-white px-3 py-2 rounded-lg hover:bg-white/30 transition-colors">← Back</button>
+      
+      {/* Keyboard Shortcut Disclaimer */}
+      {micEnabled && (
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 text-white/30 text-[10px] uppercase tracking-[0.2em] pointer-events-none">
+          Shift + Click a heart to edit its message
+        </div>
+      )}
       
       {/* --- INTRO SCREEN OVERLAY --- */}
       {!micEnabled && (
@@ -304,7 +447,7 @@ export default function VelvetRoseScene({ onBack }) {
             
             {/* Subtitle */}
             <p className="text-gray-300 text-lg md:text-xl mb-12 max-w-md leading-relaxed">
-                Blow into your microphone to make the flower bloom, or click the petals to reveal their secrets.
+                Blow into your microphone to make the flower bloom. Click hearts to leave messages (Shift+Click to re-edit).
             </p>
 
             {/* Button */}
