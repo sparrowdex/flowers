@@ -2,6 +2,8 @@ import React, { useMemo, useRef, useState, useEffect } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Sparkles, Float, Environment, PerspectiveCamera, Text, Html } from '@react-three/drei';
 import * as THREE from 'three';
+import { ref, onValue, set } from "firebase/database";
+import { db } from "./firebase";
 
 // --- SHARED CONFIGURATION ---
 const CONFIG = {
@@ -231,11 +233,17 @@ function FloatingJellyHearts({ count = 35 }) {
   const [inputValue, setInputValue] = useState("");
 
   
-  // Load saved "friend messages" from localStorage
-  const [savedMessages, setSavedMessages] = useState(() => {
-    const saved = localStorage.getItem('valentine_heart_messages');
-    return saved ? JSON.parse(saved) : {};
-  });
+  // Sync with Firebase Realtime Database
+  const [savedMessages, setSavedMessages] = useState({});
+
+  useEffect(() => {
+    const messagesRef = ref(db, 'heart_messages');
+    // Listen for changes from anyone, anywhere!
+    return onValue(messagesRef, (snapshot) => {
+      const data = snapshot.val();
+      setSavedMessages(data || {});
+    });
+  }, []);
 
   const messages = ["You are loved", "Stay sweet", "Bloom bright", "Magic is real", "Keep shining", "Heart of gold"];
 
@@ -259,15 +267,15 @@ function FloatingJellyHearts({ count = 35 }) {
 
   useFrame(() => { if (groupRef.current) groupRef.current.rotation.y += 0.001; });
 
-  const handleSave = (i) => {
+  const handleSave = (i, cancel = false) => {
     const updated = { ...savedMessages };
-    if (inputValue.trim()) {
+    if (!cancel && inputValue.trim()) {
       updated[i] = inputValue;
-    } else {
+    } else if (!cancel) {
       delete updated[i];
     }
     setSavedMessages(updated);
-    localStorage.setItem('valentine_heart_messages', JSON.stringify(updated));
+    if (!cancel) set(ref(db, 'heart_messages'), updated);
     setEditingIndex(null);
     setInputValue("");
   };
@@ -341,7 +349,7 @@ function FloatingJellyHearts({ count = 35 }) {
                       onChange={(e) => setInputValue(e.target.value)}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') handleSave(i);
-                        if (e.key === 'Escape') setEditingIndex(null);
+                        if (e.key === 'Escape') handleSave(i, true);
                       }}
                       onBlur={() => handleSave(i)}
                     />

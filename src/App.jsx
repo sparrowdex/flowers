@@ -26,9 +26,6 @@ export default function App() {
 
     if (plant) {
       setCurrentPlant(plant);
-      if (plant.hasAudio && audioRef.current) {
-        audioRef.current.play().catch(err => console.error(err));
-      }
       if (userInput === 'valentine' || plant.plantName === 'The Heart Bloom') {
         setStage('animation');
       } else {
@@ -40,17 +37,30 @@ export default function App() {
 
   const handleKeyPress = (e) => { if (e.key === 'Enter') handleSubmit(); };
 
-  const PlantComponent = currentPlant ? currentPlant.component : null;
-
   // Background logic based on mode
   const isValentine = name.trim().toLowerCase() === 'valentine' || currentPlant?.plantName === 'The Heart Bloom';
+  const audioSrc = (currentPlant?.plantName === 'The Heart Bloom') ? "/audio/Grounded.mp3" : "/audio/soft_melody.m4a";
+
+  // Handle audio playback safely after React updates the DOM
+  useEffect(() => {
+    if (audioRef.current && currentPlant?.hasAudio && stage !== 'input') {
+      // Force the audio element to reload the new source
+      audioRef.current.load();
+      audioRef.current.play().catch(err => {
+        console.error("Audio playback failed. Please verify that the file exists at public/audio/Grounded.mp3 and is a valid audio format.", err);
+      });
+    }
+  }, [currentPlant, stage, audioSrc]);
+
+  const PlantComponent = currentPlant ? currentPlant.component : null;
+
   const bgClass = isValentine 
     ? "bg-gradient-to-br from-[#4d0026] via-[#a62051] to-[#4d0026]" 
     : "bg-gradient-to-br from-slate-900 via-green-900 to-slate-900";
 
   return (
     <div className={`animated-gradient w-full h-screen transition-colors duration-1000 ${bgClass}`}>
-      <audio ref={audioRef} src="/audio/soft_melody.m4a" loop hidden />
+      <audio ref={audioRef} src={audioSrc} loop hidden />
 
       {stage === 'input' && (
         <div className="flex items-center justify-center h-full">
