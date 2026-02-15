@@ -533,8 +533,8 @@ export default function VelvetRoseScene({ onBack }) {
         <Suspense fallback={null}>
           <EffectComposer>
             <Bloom 
-              intensity={1.2} 
-              luminanceThreshold={1} 
+              intensity={0.8} 
+              luminanceThreshold={1.1} 
               mipmapBlur 
             />
           </EffectComposer>

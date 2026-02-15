@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { useFrame } from '@react-three/fiber';
-import { Text, Sparkles } from '@react-three/drei';
+import { useFrame, useThree } from '@react-three/fiber';
+import { Text, Sparkles, Float } from '@react-three/drei';
 import titleFont from './fonts/QuentineDEMO-Regular.otf';
 
 const IntroSequence = ({ onFinish }) => {
@@ -9,6 +9,11 @@ const IntroSequence = ({ onFinish }) => {
   const shimmerRef = useRef();
   const [phase, setPhase] = useState('in'); // 'in', 'stay', 'dissipate'
   const opacity = useRef(0);
+
+  const { viewport, size } = useThree();
+  const isMobile = size.width < 600;
+  const fontSize = isMobile ? 0.65 : 1.4;
+  const groupZ = isMobile ? 8 : 10;
 
   useEffect(() => {
     console.log("IntroSequence: Started");
@@ -39,10 +44,14 @@ const IntroSequence = ({ onFinish }) => {
     if (phase === 'in') {
       opacity.current = Math.min(1, opacity.current + delta * 0.8);
     } else if (phase === 'dissipate') {
-      opacity.current = Math.max(0, opacity.current - delta * 1.2);
+      // Fade out the text faster
+      opacity.current = Math.max(0, opacity.current - delta * 2);
+      
       if (sparkleRef.current) {
-        sparkleRef.current.rotation.y += delta * 2;
-        sparkleRef.current.scale.setScalar(sparkleRef.current.scale.x + delta * 3);
+        // Make the sparkles "explode" outwards and move toward the camera
+        sparkleRef.current.rotation.y += delta * 4;
+        sparkleRef.current.scale.setScalar(sparkleRef.current.scale.x + delta * 8);
+        sparkleRef.current.position.z += delta * 5;
       }
     }
 
@@ -64,32 +73,36 @@ const IntroSequence = ({ onFinish }) => {
   });
 
   return (
-    <group position={[0, 1.5, 10]} key="intro-group">
-      <Text
-        ref={textRef}
-        font={titleFont || undefined}
-        fontSize={1.4}
-        anchorX="center"
-        anchorY="middle"
-        fillOpacity={0}
-      >
-        The Heart Bloom
-        <meshStandardMaterial 
-          color="white"
-          emissive="#ffb3c1" 
-          emissiveIntensity={2} 
-          toneMapped={false} 
-          transparent 
-          opacity={0}
-        />
-      </Text>
+    <group position={[0, 1.5, groupZ]} key="intro-group">
+      <Float speed={2} rotationIntensity={0.5} floatIntensity={0.5}>
+        <Text
+          ref={textRef}
+          font={titleFont || undefined}
+          fontSize={fontSize}
+          anchorX="center"
+          anchorY="middle"
+          fillOpacity={0}
+        >
+          The Heart Bloom
+          <meshStandardMaterial 
+            color="#fff0f3"
+            emissive="#ffb3c1" 
+            emissiveIntensity={1.5} 
+            toneMapped={false} 
+            metalness={1}
+            roughness={0.3}
+            transparent 
+            opacity={0}
+          />
+        </Text>
+      </Float>
       {/* Shimmer Light */}
       <pointLight ref={shimmerRef} position={[0, 0, 1]} intensity={5} color="#fff" distance={10} />
       
       <group ref={sparkleRef}>
         <Sparkles 
           count={phase === 'dissipate' ? 400 : 150} 
-          scale={[12, 2, 1]} 
+          scale={isMobile ? [6, 2, 1] : [12, 2, 1]} 
           size={6} 
           speed={1.5} 
           noise={1}
