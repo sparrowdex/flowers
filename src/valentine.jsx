@@ -1,9 +1,10 @@
-import React, { useMemo, useRef, useState, useEffect } from 'react';
+import React, { useMemo, useRef, useState, useEffect, useCallback } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Sparkles, Float, Environment, PerspectiveCamera, Text, Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { ref, onValue, set } from "firebase/database";
 import { db } from "./firebase";
+import IntroSequence from './IntroSequence';
 
 // Custom Fonts
 import customFont from './fonts/GERALDINE PERSONAL USE.ttf'; 
@@ -401,6 +402,12 @@ export default function VelvetRoseScene({ onBack }) {
   const [micEnabled, setMicEnabled] = useState(false);
   const [isManuallyToggled, setIsManuallyToggled] = useState(false);
 
+  const [introPhase, setIntroPhase] = useState('none'); // 'none', 'active', 'finished'
+
+  const handleIntroFinish = useCallback(() => {
+    setIntroPhase('finished');
+  }, []);
+
   // Manual toggle overrides the microphone temporarily
   const toggleBloom = (e) => {
     if (e) e.stopPropagation();
@@ -455,6 +462,10 @@ export default function VelvetRoseScene({ onBack }) {
           font-family: 'RomanticSky';
           src: url(${creditFont});
         }
+        @font-face {
+          font-family: 'Geraldine';
+          src: url(${customFont});
+        }
       `}</style>
       <button onClick={onBack} className="absolute top-4 left-4 z-10 bg-white/20 backdrop-blur-sm text-white px-3 py-2 rounded-lg hover:bg-white/30 transition-colors">← Back</button>
       
@@ -474,8 +485,8 @@ export default function VelvetRoseScene({ onBack }) {
       {!micEnabled && (
         <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/80 backdrop-blur-md p-6 text-center">
             {/* Title */}
-            <h1 className="text-5xl md:text-7xl font-serif text-pink-500 mb-4 animate-pulse drop-shadow-[0_0_15px_rgba(236,72,153,0.5)]">
-                Happy Valentine's Day
+            <h1 style={{ fontFamily: 'Geraldine, serif' }} className="text-5xl md:text-7xl text-pink-500 mb-4 animate-pulse drop-shadow-[0_0_15px_rgba(236,72,153,0.5)]">
+                The Heart Bloom
             </h1>
             
             {/* Subtitle */}
@@ -485,7 +496,10 @@ export default function VelvetRoseScene({ onBack }) {
 
             {/* Button */}
             <button 
-                onClick={() => setMicEnabled(true)}
+                onClick={() => {
+                  setMicEnabled(true);
+                  setIntroPhase('active');
+                }}
                 className="px-8 py-4 bg-gradient-to-r from-pink-600 to-rose-600 text-white rounded-full text-xl font-bold shadow-lg hover:shadow-pink-500/50 hover:scale-105 transition-all transform"
             >
                 Start Experience ❤️
@@ -493,7 +507,11 @@ export default function VelvetRoseScene({ onBack }) {
         </div>
       )}
       
-      <Canvas shadows dpr={[1, 2]}>
+      <Canvas 
+        shadows 
+        dpr={[1, 2]}
+        style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
+      >
         <PerspectiveCamera makeDefault fov={45} position={[0, 2, 20]} />
         <ResponsiveCamera />
         <ambientLight intensity={0.5} />
@@ -501,11 +519,16 @@ export default function VelvetRoseScene({ onBack }) {
         <pointLight position={[0, 0, 2]} intensity={1} color="#ffffff" distance={3} />
         <Environment preset="studio" />
 
-        <group onClick={toggleBloom}>
-          <HeartBloomFlower openProgress={openProgress} />
+        {introPhase === 'active' && <IntroSequence onFinish={handleIntroFinish} />}
+
+        <group visible={introPhase === 'finished'}>
+          <group onClick={toggleBloom}>
+            <HeartBloomFlower openProgress={openProgress} />
+          </group>
+          <FloatingJellyHearts count={40} />
+          <Sparkles count={60} scale={15} size={1} speed={0.4} opacity={0.3} color="#fff" />
         </group>
-        <FloatingJellyHearts count={40} />
-        <Sparkles count={60} scale={15} size={1} speed={0.4} opacity={0.3} color="#fff" />
+
         <OrbitControls makeDefault target={[0, 1.2, 0]} minPolarAngle={0} maxPolarAngle={Math.PI / 1.5} />
       </Canvas>
     </div>

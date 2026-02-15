@@ -6,11 +6,11 @@ import titleFont from './fonts/QuentineDEMO-Regular.otf';
 const IntroSequence = ({ onFinish }) => {
   const textRef = useRef();
   const sparkleRef = useRef();
-  const [opacity, setOpacity] = useState(0);
   const [phase, setPhase] = useState('in'); // 'in', 'stay', 'dissipate'
+  const opacity = useRef(0);
 
   useEffect(() => {
-    console.log("IntroSequence: Mounted. Phase:", phase);
+    console.log("IntroSequence: Started");
     
     const t1 = setTimeout(() => {
       setPhase('stay');
@@ -34,34 +34,34 @@ const IntroSequence = ({ onFinish }) => {
 
   useFrame((state, delta) => {
     if (phase === 'in') {
-      setOpacity(prev => Math.min(1, prev + delta * 0.8));
+      opacity.current = Math.min(1, opacity.current + delta * 0.8);
     } else if (phase === 'dissipate') {
-      setOpacity(prev => Math.max(0, prev - delta * 1.2));
+      opacity.current = Math.max(0, opacity.current - delta * 1.2);
       if (sparkleRef.current) {
         sparkleRef.current.rotation.y += delta * 2;
         sparkleRef.current.scale.setScalar(sparkleRef.current.scale.x + delta * 3);
+        // Manually update the sparkles' material opacity for a smooth fade-out
+        if (sparkleRef.current.children[0]?.material) {
+          sparkleRef.current.children[0].material.opacity = opacity.current * 0.8;
+        }
       }
+    }
+
+    if (textRef.current) {
+      textRef.current.fillOpacity = opacity.current;
     }
   });
 
   return (
-    <group position={[0, 1.2, 0]} key="intro-group">
-      {/* Debug Cube: If you see this pink box, the 3D engine is working! */}
-      {phase === 'in' && (
-        <mesh position={[0, 0, -1]}>
-          <boxGeometry args={[0.1, 0.1, 0.1]} />
-          <meshBasicMaterial color="pink" />
-        </mesh>
-      )}
-
+    <group position={[0, 1.5, 10]} key="intro-group">
       <Text
         ref={textRef}
-        font={titleFont || undefined} // Fallback to default if font fails
-        fontSize={1.5}
+        font={titleFont || undefined}
+        fontSize={1.8}
         color="white"
         anchorX="center"
         anchorY="middle"
-        fillOpacity={opacity}
+        fillOpacity={0}
       >
         The Heart Bloom
       </Text>
@@ -71,7 +71,7 @@ const IntroSequence = ({ onFinish }) => {
           scale={phase === 'dissipate' ? 12 : 4} 
           size={phase === 'dissipate' ? 6 : 2} 
           speed={phase === 'dissipate' ? 3 : 0.6} 
-          opacity={opacity * 0.8} 
+          opacity={opacity.current * 0.8} 
           color="#ffb3c1" 
         />
       </group>

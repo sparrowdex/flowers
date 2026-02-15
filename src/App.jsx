@@ -111,9 +111,11 @@ export default function App() {
           {!isValentine && showBirthdayMessage && <BirthdayMessage />}
           <PlantComponent onBack={() => setStage('input')} />
           {!isValentine && currentPlant.funFacts && <FunFacts facts={currentPlant.funFacts} />}
-          <div className="absolute top-20 left-1/2 transform -translate-x-1/2 text-center">
-            <h3 className="text-3xl font-light text-white mb-2">{currentPlant.plantName}</h3>
-          </div>
+          {!isValentine && (
+            <div className="absolute top-20 left-1/2 transform -translate-x-1/2 text-center">
+              <h3 className="text-3xl font-light text-white mb-2">{currentPlant.plantName}</h3>
+            </div>
+          )}
         </div>
       )}
     </div>
