@@ -6,6 +6,7 @@ import titleFont from './fonts/QuentineDEMO-Regular.otf';
 const IntroSequence = ({ onFinish }) => {
   const textRef = useRef();
   const sparkleRef = useRef();
+  const shimmerRef = useRef();
   const [phase, setPhase] = useState('in'); // 'in', 'stay', 'dissipate'
   const opacity = useRef(0);
 
@@ -33,6 +34,8 @@ const IntroSequence = ({ onFinish }) => {
   }, [onFinish]);
 
   useFrame((state, delta) => {
+    const t = state.clock.elapsedTime;
+
     if (phase === 'in') {
       opacity.current = Math.min(1, opacity.current + delta * 0.8);
     } else if (phase === 'dissipate') {
@@ -40,15 +43,23 @@ const IntroSequence = ({ onFinish }) => {
       if (sparkleRef.current) {
         sparkleRef.current.rotation.y += delta * 2;
         sparkleRef.current.scale.setScalar(sparkleRef.current.scale.x + delta * 3);
-        // Manually update the sparkles' material opacity for a smooth fade-out
-        if (sparkleRef.current.children[0]?.material) {
-          sparkleRef.current.children[0].material.opacity = opacity.current * 0.8;
-        }
       }
+    }
+
+    // Shimmer light animation: moves a light across the text to create glints
+    if (shimmerRef.current) {
+      shimmerRef.current.position.x = Math.sin(t * 1.5) * 6;
     }
 
     if (textRef.current) {
       textRef.current.fillOpacity = opacity.current;
+      if (textRef.current.material) {
+        textRef.current.material.opacity = opacity.current;
+      }
+    }
+
+    if (sparkleRef.current && sparkleRef.current.children[0]?.material) {
+      sparkleRef.current.children[0].material.opacity = opacity.current * 0.8;
     }
   });
 
@@ -57,22 +68,33 @@ const IntroSequence = ({ onFinish }) => {
       <Text
         ref={textRef}
         font={titleFont || undefined}
-        fontSize={1.8}
-        color="white"
+        fontSize={1.4}
         anchorX="center"
         anchorY="middle"
         fillOpacity={0}
       >
         The Heart Bloom
+        <meshStandardMaterial 
+          color="white"
+          emissive="#ffb3c1" 
+          emissiveIntensity={2} 
+          toneMapped={false} 
+          transparent 
+          opacity={0}
+        />
       </Text>
+      {/* Shimmer Light */}
+      <pointLight ref={shimmerRef} position={[0, 0, 1]} intensity={5} color="#fff" distance={10} />
+      
       <group ref={sparkleRef}>
         <Sparkles 
-          count={phase === 'dissipate' ? 200 : 80} 
-          scale={phase === 'dissipate' ? 12 : 4} 
-          size={phase === 'dissipate' ? 6 : 2} 
-          speed={phase === 'dissipate' ? 3 : 0.6} 
-          opacity={opacity.current * 0.8} 
-          color="#ffb3c1" 
+          count={phase === 'dissipate' ? 400 : 150} 
+          scale={[12, 2, 1]} 
+          size={6} 
+          speed={1.5} 
+          noise={1}
+          opacity={0} 
+          color="#fff" 
         />
       </group>
     </group>

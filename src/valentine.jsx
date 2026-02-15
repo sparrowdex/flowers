@@ -1,9 +1,10 @@
-import React, { useMemo, useRef, useState, useEffect, useCallback } from 'react';
+import React, { useMemo, useRef, useState, useEffect, useCallback, Suspense } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Sparkles, Float, Environment, PerspectiveCamera, Text, Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { ref, onValue, set } from "firebase/database";
 import { db } from "./firebase";
+import { EffectComposer, Bloom } from '@react-three/postprocessing';
 import IntroSequence from './IntroSequence';
 
 // Custom Fonts
@@ -528,6 +529,16 @@ export default function VelvetRoseScene({ onBack }) {
           <FloatingJellyHearts count={40} />
           <Sparkles count={60} scale={15} size={1} speed={0.4} opacity={0.3} color="#fff" />
         </group>
+
+        <Suspense fallback={null}>
+          <EffectComposer>
+            <Bloom 
+              intensity={1.2} 
+              luminanceThreshold={1} 
+              mipmapBlur 
+            />
+          </EffectComposer>
+        </Suspense>
 
         <OrbitControls makeDefault target={[0, 1.2, 0]} minPolarAngle={0} maxPolarAngle={Math.PI / 1.5} />
       </Canvas>
