@@ -383,6 +383,7 @@ export default function PerfectBlueOrchid({ onBack }) {
           </group>
           
           <Sparkles count={60} scale={10} size={6} speed={0.4} opacity={0.6} color="#60a5fa" />
+          <Sparkles count={60} scale={10} size={2} speed={0.4} opacity={0.6} color="#60a5fa" />
           
           <OrbitControls enableZoom={true} target={[0, 2, 0]} maxPolarAngle={Math.PI - 0.2} />
         </Canvas>

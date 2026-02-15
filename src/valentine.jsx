@@ -72,7 +72,7 @@ function SoulHeartSystem({ isOpen }) {
         />
       </mesh>
       {active && (
-        <Sparkles count={10} scale={1} size={3} speed={0.2} opacity={0.5} color="#fff" position={[0, -0.2, 0]} />
+        <Sparkles count={10} scale={1} size={1.5} speed={0.2} opacity={0.5} color="#fff" position={[0, -0.2, 0]} />
       )}
     </group>
   );
@@ -175,7 +175,7 @@ function HeartBloomFlower({ openProgress }) {
     <group position={[0, 1.2, 0]}> 
       <StemWithLeaves />
       <SoulHeartSystem isOpen={openProgress > 0.9} />
-      <Sparkles count={30} scale={2} size={3} speed={0.4} opacity={0.6} color="#ffe6f2" position={[0, 0.5, 0]} />
+      <Sparkles count={30} scale={2} size={1.5} speed={0.4} opacity={0.6} color="#ffe6f2" position={[0, 0.5, 0]} />
       {[...layer1, ...layer2, ...layer3, ...layer4].map((p, i) => (
         <HeartPetal 
           key={i} rotationOffset={p.rot} minTilt={p.minTilt} maxTilt={p.maxTilt}

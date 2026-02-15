@@ -49,7 +49,6 @@ const IntroSequence = ({ onFinish }) => {
       
       if (sparkleRef.current) {
         // Make the sparkles "explode" outwards and move toward the camera
-        sparkleRef.current.rotation.y += delta * 4;
         sparkleRef.current.scale.setScalar(sparkleRef.current.scale.x + delta * 8);
         sparkleRef.current.position.z += delta * 5;
       }
@@ -87,17 +86,17 @@ const IntroSequence = ({ onFinish }) => {
           <meshStandardMaterial 
             color="#fff0f3"
             emissive="#ffb3c1" 
-            emissiveIntensity={1.5} 
+            emissiveIntensity={0.2} 
             toneMapped={false} 
-            metalness={1}
-            roughness={0.3}
+            metalness={0.5}
+            roughness={0.5}
             transparent 
             opacity={0}
           />
         </Text>
       </Float>
       {/* Shimmer Light */}
-      <pointLight ref={shimmerRef} position={[0, 0, 1]} intensity={5} color="#fff" distance={10} />
+      <pointLight ref={shimmerRef} position={[0, 0, 1]} intensity={2} color="#fff" distance={10} />
       
       <group ref={sparkleRef}>
         <Sparkles 

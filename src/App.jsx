@@ -1,7 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { Canvas } from '@react-three/fiber';
 import plantData from './plantData';
 import FunFacts from './FunFacts';
 import BirthdayMessage from './BirthdayMessage';
+import PetalPortal from './PetalPortal';
 
 export default function App() {
   const [stage, setStage] = useState('input');
@@ -10,6 +12,7 @@ export default function App() {
   const [showBirthdayMessage, setShowBirthdayMessage] = useState(true);
   const [currentPlant, setCurrentPlant] = useState(null);
   const audioRef = useRef(null);
+  const [isRevealing, setIsRevealing] = useState(false);
 
   const handleSubmit = () => {
     const userInput = name.trim().toLowerCase();
@@ -26,12 +29,19 @@ export default function App() {
 
     if (plant) {
       setCurrentPlant(plant);
-      if (userInput === 'valentine' || plant.plantName === 'The Heart Bloom') {
+      setIsRevealing(true);
+    }
+  };
+
+  const handleBurstComplete = () => {
+    if (currentPlant) {
+      if (currentPlant.plantName === 'The Heart Bloom') {
         setStage('animation');
       } else {
         setStage('message');
         setTimeout(() => setFadeIn(true), 100);
       }
+      setIsRevealing(false);
     }
   };
 
@@ -40,6 +50,25 @@ export default function App() {
   // Background logic based on mode
   const isValentine = name.trim().toLowerCase() === 'valentine' || currentPlant?.plantName === 'The Heart Bloom';
   const audioSrc = (currentPlant?.plantName === 'The Heart Bloom') ? "/audio/Grounded.mp3" : "/audio/soft_melody.m4a";
+
+  // Dynamic theme color for UI elements
+  const themeColor = (() => {
+    const userInput = name.trim().toLowerCase();
+    if (userInput === 'valentine') return '#ff2d75';
+    const plant = plantData[userInput];
+    if (plant) {
+      const colorMap = {
+        'Peace Lily': '#ffffff',
+        'Gladiolus': '#ff8c00',
+        'Pink Carnation': '#ffb7c5',
+        'Blue Orchid': '#3b82f6',
+        'Sweet Pea': '#ff69b4',
+        'Lotus': '#ffb6c1'
+      };
+      return colorMap[plant.plantName] || '#4ade80';
+    }
+    return '#4ade80';
+  })();
 
   // Handle audio playback safely after React updates the DOM
   useEffect(() => {
@@ -63,8 +92,20 @@ export default function App() {
       <audio ref={audioRef} src={audioSrc} loop hidden />
 
       {stage === 'input' && (
-        <div className="flex items-center justify-center h-full">
-          <div className="text-center space-y-8 p-8">
+        <div className="flex items-center justify-center h-full relative overflow-hidden">
+          <div className="absolute inset-0 z-0">
+            <Canvas camera={{ position: [0, 0, 20], fov: 35 }}>
+              <ambientLight intensity={0.5} />
+              <pointLight position={[10, 10, 10]} />
+              <PetalPortal 
+                name={name} 
+                isRevealing={isRevealing} 
+                onBurstComplete={handleBurstComplete} 
+              />
+            </Canvas>
+          </div>
+          
+          <div className="text-center space-y-8 p-8 z-10">
             <h1 className="text-5xl font-light text-white mb-4">Discover Your Plant Identity</h1>
             <p className="text-xl text-pink-200 mb-8">A special gift awaits...</p>
             <div className="space-y-4 flex flex-col items-center">
@@ -74,11 +115,13 @@ export default function App() {
                 onChange={(e) => setName(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder="Enter your name"
-                className={`px-6 py-4 text-2xl bg-white/10 border-2 rounded-lg text-white placeholder-white/50 focus:outline-none w-80 transition-colors ${isValentine ? 'border-pink-400' : 'border-green-300/50'}`}
+                className="px-6 py-4 text-2xl bg-white/10 backdrop-blur-md border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none w-80 transition-all duration-500"
+                style={{ boxShadow: `0 0 20px ${themeColor}44` }}
               />
               <button
                 onClick={handleSubmit}
-                className={`w-80 px-6 py-4 text-xl rounded-lg transition-all duration-300 shadow-lg ${isValentine ? 'bg-pink-600 hover:bg-pink-500 shadow-pink-500/50' : 'bg-green-600 hover:bg-green-500 shadow-green-500/50'}`}
+                className="w-80 px-6 py-4 text-xl rounded-lg transition-all duration-300 shadow-lg text-white font-bold"
+                style={{ backgroundColor: themeColor, boxShadow: `0 10px 20px ${themeColor}66` }}
               >
                 Reveal
               </button>

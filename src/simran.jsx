@@ -269,7 +269,7 @@ function PinkCarnation() {
 
 function SparklesComponent() {
   return (
-    <Sparkles count={60} scale={10} size={6} speed={0.4} opacity={0.6} color="#60a5fa" />
+    <Sparkles count={60} scale={10} size={2} speed={0.4} opacity={0.6} color="#60a5fa" />
   );
 }
 

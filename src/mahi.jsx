@@ -420,6 +420,7 @@ export default function SweetPeaApp({ onBack }) {
           </group>
 
           <Sparkles count={80} scale={8} size={4} speed={0.3} opacity={0.5} color={isDarkMode ? "#ffaaee" : "#ffeeff"} />
+          <Sparkles count={80} scale={8} size={1.5} speed={0.3} opacity={0.5} color={isDarkMode ? "#ffaaee" : "#ffeeff"} />
           <OrbitControls enableZoom={true} target={[0, 1.5, 0]} maxPolarAngle={Math.PI - 0.1} minDistance={3} maxDistance={15} />
         </Canvas>
       </div>

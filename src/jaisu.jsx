@@ -151,6 +151,7 @@ export default function HeartBloomScene() {
         
         {/* Sparkles boosted for dark background */}
         <Sparkles count={100} scale={15} size={4} speed={0.4} color="#fff" />
+        <Sparkles count={100} scale={15} size={1.5} speed={0.4} color="#fff" />
         
         <OrbitControls makeDefault target={[0, 2, 0]} />
       </Canvas>
