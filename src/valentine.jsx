@@ -5,6 +5,10 @@ import * as THREE from 'three';
 import { ref, onValue, set } from "firebase/database";
 import { db } from "./firebase";
 
+// Custom Fonts
+import customFont from './fonts/GERALDINE PERSONAL USE.ttf'; 
+import creditFont from './fonts/RomanticSkyDemo-vmogE.ttf'; 
+
 // --- SHARED CONFIGURATION ---
 const CONFIG = {
   mainColor: "#c2185b",    
@@ -219,6 +223,7 @@ function AnimatedText({ text, onClick }) {
       color="white" 
       anchorX="center" 
       anchorY="middle"
+      font={customFont}
       onClick={onClick}
     >
       {text}
@@ -327,7 +332,13 @@ function FloatingJellyHearts({ count = 35 }) {
               {isEditing && (
                 <group>
                   {/* 3D Text being typed */}
-                  <Text fontSize={0.4} color="white" anchorX="center" anchorY="middle">
+                  <Text 
+                    fontSize={0.4} 
+                    color="white" 
+                    anchorX="center" 
+                    anchorY="middle"
+                    font={customFont}
+                  >
                     {inputValue || "|"}
                   </Text>
                   {/* Transparent underline */}
@@ -410,14 +421,16 @@ export default function VelvetRoseScene({ onBack }) {
         source = audioContext.createMediaStreamSource(stream);
         source.connect(analyser);
         analyser.fftSize = 256;
+        analyser.smoothingTimeConstant = 0.5; 
         dataArray = new Uint8Array(analyser.frequencyBinCount);
 
         const update = () => {
           analyser.getByteFrequencyData(dataArray);
-          const avg = dataArray.reduce((a, b) => a + b) / dataArray.length;
+          // Focus on low frequencies (blowing/wind noise) to ignore background music
+          const lowFreqRange = dataArray.slice(0, 25);
+          const avg = lowFreqRange.reduce((a, b) => a + b) / lowFreqRange.length;
           
-          // Noise Threshold: 60
-          if (avg > 60) {
+          if (avg > 65) {
             setIsManuallyToggled(false); 
             setOpenProgress(prev => Math.min(prev + 0.05, 1));
           } else if (!isManuallyToggled) {
@@ -437,6 +450,12 @@ export default function VelvetRoseScene({ onBack }) {
 
   return (
     <div className="w-full h-screen relative" style={{ background: 'radial-gradient(circle, #5c001e 0%, #1a000d 50%, #000 100%)' }}>
+      <style>{`
+        @font-face {
+          font-family: 'RomanticSky';
+          src: url(${creditFont});
+        }
+      `}</style>
       <button onClick={onBack} className="absolute top-4 left-4 z-10 bg-white/20 backdrop-blur-sm text-white px-3 py-2 rounded-lg hover:bg-white/30 transition-colors">← Back</button>
       
       {/* Keyboard Shortcut Disclaimer */}
@@ -446,6 +465,11 @@ export default function VelvetRoseScene({ onBack }) {
         </div>
       )}
       
+      {/* Song Credit */}
+      <div className="absolute bottom-2 right-4 z-10 text-white/40 text-[10px] tracking-wider pointer-events-none" style={{ fontFamily: "'RomanticSky', sans-serif" }}>
+        Music: Grounded by Anita Tatlow
+      </div>
+
       {/* --- INTRO SCREEN OVERLAY --- */}
       {!micEnabled && (
         <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/80 backdrop-blur-md p-6 text-center">
