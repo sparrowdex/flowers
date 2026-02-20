@@ -1,6 +1,6 @@
 import React, { useRef, useMemo, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Float, Sparkles } from '@react-three/drei';
+import { OrbitControls, Float, Sparkles, Environment } from '@react-three/drei';
 import * as THREE from 'three';
 
 // --- BACKGROUND ---
@@ -11,9 +11,7 @@ const animatedBackgroundStyle = `
     100% { background-position: 0% 50%; }
   }
   .night-gradient-bg {
-    background: linear-gradient(-45deg, #020617, #0f172a, #172554);
-    background-size: 400% 400%;
-    animation: night-gradient 30s ease infinite;
+    background: radial-gradient(circle, #003366 0%, #000d1a 50%, #000 100%);
   }
   @keyframes green-gradient {
     0% { background-position: 0% 50%; }
@@ -89,9 +87,9 @@ function OrchidPetal({ type = 'petal', width = 1, length = 1, colorVariation = 0
         gradient.addColorStop(0.6, `hsl(240, 85%, 35%)`);  
         gradient.addColorStop(1.0, `hsl(250, 100%, 50%)`); 
     } else {
-        // Brightened the center slightly so it doesn't look like a black hole
-        gradient.addColorStop(0.0, `hsl(220, 90%, 15%)`); 
-        gradient.addColorStop(0.3, `hsl(215, 95%, 30%)`);  
+        // Lightened the base blue tones to prevent the "dark hole" look
+        gradient.addColorStop(0.0, `hsl(220, 90%, 25%)`); 
+        gradient.addColorStop(0.3, `hsl(215, 95%, 45%)`);  
         gradient.addColorStop(0.7, `hsl(${210 + colorVariation}, 90%, 55%)`); 
         gradient.addColorStop(1.0, `hsl(${200 + colorVariation}, 100%, 70%)`); // Very bright tips
     }
@@ -127,8 +125,7 @@ function OrchidPetal({ type = 'petal', width = 1, length = 1, colorVariation = 0
     const mat = new THREE.MeshStandardMaterial({
       map: texture,
       color: '#ffffff',
-      // FIX: Added a very faint deep blue emissive glow. 
-      // This prevents the flower from looking "dead" or black in shadows.
+      // Reverted emissive to a more subtle deep blue for natural shading
       emissive: '#111133', 
       emissiveIntensity: 0.4, 
       roughness: 0.3, 
@@ -355,28 +352,28 @@ export default function PerfectBlueOrchid({ onBack }) {
           shadows
         >
           {/* 1. BRIGHTER AMBIENT LIGHT: Lifts the overall darkness */}
-          <ambientLight intensity={0.8} color="#666699" />
+          <ambientLight intensity={isDarkMode ? 1.2 : 0.9} color={isDarkMode ? "#a0c0ff" : "#80a0ff"} />
           
           <spotLight 
             position={[10, 8, 5]} 
             angle={0.3} 
             penumbra={0.5} 
-            intensity={3} 
+            intensity={isDarkMode ? 0.8 : 0.5} // Reduced intensity
             castShadow 
             shadow-bias={-0.0001}
-            color="#ffffff"
+            color={isDarkMode ? "#e0f2ff" : "#c0e0ff"} // Soft blue color
           />
           
           <spotLight 
             position={[-5, 5, -5]} 
-            intensity={5} 
-            color="#3b82f6" 
+            intensity={isDarkMode ? 0.6 : 0.3} // Reduced intensity
+            color={isDarkMode ? "#c0e0ff" : "#a0c0ff"} // Soft blue color
           />
 
-          {/* 2. BRIGHTER FILL LIGHT: Illuminates the face of the flowers */}
-          <pointLight position={[0, 2, 5]} intensity={1.5} color="#dbeafe" />
+          {/* Environment for atmospheric lighting */}
+          <Environment preset="night" />
 
-          <group position-y={-0.5}>
+          <group position-y={-0.5}> {/* Adjusted position-y for better centering */}
             <Float speed={1.5} rotationIntensity={0.1} floatIntensity={0.2}>
                  <OrchidPlant />
             </Float>

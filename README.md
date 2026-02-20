@@ -71,7 +71,7 @@ Once the application is running, you can enter one of the following names to see
 *   **simran** (Pink Carnation)
 *   **kaashvi** (Blue Orchid)
 *   **mahi** (Sweet Pea)
-*   **jaisu** (Lotus)
+*   **jaiswal** (Lotus)
 *   **valentine** (The Heart Bloom)
 
 You can also enter the name of the flower directly.

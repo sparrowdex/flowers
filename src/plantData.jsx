@@ -3,8 +3,8 @@ import OrangeGladiolus from './aarushi';
 import PinkCarnationScene from './simran';
 import BlueOrchid from './kaashvi';
 import SweetPeaApp from './mahi';
-import LotusScene from './jaisu';
-import ValentineScene from './valentine'; // Ensure you created src/valentine.jsx
+import LotusScene from './jaiswal';
+import ValentineScene from './valentine'; 
 
 const plantData = {
   'prakriti': {
@@ -108,7 +108,7 @@ const plantData = {
       "They symbolize departure and blissful pleasure."
     ]
   },
-  'jaisu': {
+  'jaiswal': {
     plantName: 'Lotus',
     description: [
       "Your plant identity is the <span className=\"text-white font-bold\">Lotus</span>.",
@@ -123,7 +123,7 @@ const plantData = {
       "Lotus seeds can remain viable for up to 1,300 years.",
       "The flowers open in the morning and close at night.",
       "Lotus plants have floating leaves up to 3 feet in.", ]
-  },
+  }, // Removed the comma here
   'valentine': {
     plantName: 'The Heart Bloom',
     component: ValentineScene,
