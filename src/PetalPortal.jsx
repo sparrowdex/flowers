@@ -58,9 +58,21 @@ const PetalPortal = ({ name, isRevealing, onBurstComplete }) => {
   const color = useMemo(() => new THREE.Color());
 
   const targetColor = useMemo(() => {
-    const userInput = name.trim().toLowerCase();
+    const userInput = name.trim().toLowerCase().replace(/\s+/g, ' ');
     if (userInput === 'valentine') return '#ff2d75';
-    const plant = plantData[userInput];
+
+    // First, try to match by the friend's name (the key in plantData)
+    let plant = plantData[userInput];
+
+    if (!plant) {
+      // If no match by name, try to match by the flower's name
+      const plantKey = Object.keys(plantData).find(key =>
+        plantData[key].plantName && plantData[key].plantName.toLowerCase() === userInput
+      );
+      if (plantKey) {
+        plant = plantData[plantKey];
+      }
+    }
     if (plant) {
       const colorMap = {
         'Peace Lily': '#ffffff', 'Gladiolus': '#ff8c00', 'Pink Carnation': '#ffb7c5',

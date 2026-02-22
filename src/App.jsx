@@ -15,16 +15,20 @@ export default function App() {
   const [isRevealing, setIsRevealing] = useState(false);
 
   const handleSubmit = () => {
-    const userInput = name.trim().toLowerCase();
-    
-    // Valentine Special Trigger: If they type "valentine"
-    let plant = (userInput === 'valentine') 
-      ? plantData['valentine'] 
-      : plantData[userInput];
+    // Normalize input for robust matching (e.g., "Peace Lily" vs "peace lily" or with extra spaces)
+    const userInput = name.trim().toLowerCase().replace(/\s+/g, ' ');
+
+    // First, try to match by the friend's name (the key in plantData)
+    let plant = plantData[userInput];
 
     if (!plant) {
-      const plantKey = Object.keys(plantData).find(key => plantData[key].plantName.toLowerCase() === userInput);
-      if (plantKey) plant = plantData[plantKey];
+      // If no match by name, try to match by the flower's name
+      const plantKey = Object.keys(plantData).find(key =>
+        plantData[key].plantName && plantData[key].plantName.toLowerCase() === userInput
+      );
+      if (plantKey) {
+        plant = plantData[plantKey];
+      }
     }
 
     if (plant) {
@@ -53,9 +57,21 @@ export default function App() {
 
   // Dynamic theme color for UI elements
   const themeColor = (() => {
-    const userInput = name.trim().toLowerCase();
+    const userInput = name.trim().toLowerCase().replace(/\s+/g, ' ');
     if (userInput === 'valentine') return '#ff2d75';
-    const plant = plantData[userInput];
+
+    // First, try to match by the friend's name (the key in plantData)
+    let plant = plantData[userInput];
+
+    if (!plant) {
+      // If no match by name, try to match by the flower's name
+      const plantKey = Object.keys(plantData).find(key =>
+        plantData[key].plantName && plantData[key].plantName.toLowerCase() === userInput
+      );
+      if (plantKey) {
+        plant = plantData[plantKey];
+      }
+    }
     if (plant) {
       const colorMap = {
         'Peace Lily': '#ffffff',
